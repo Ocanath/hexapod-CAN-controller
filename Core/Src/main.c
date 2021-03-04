@@ -5,78 +5,37 @@
 #include "uart-disp-tools.h"
 
 
-#define NUM_JOINTS 6
+#define NUM_JOINTS 1
 
 joint chain[NUM_JOINTS] = {
 		{
-				.id = 26,
+				.id = 22,
 				.frame = 1,
 				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
-				.q_offset = -1.033f,
+				.q_offset = 0.f,
 				.tau = {.v = 0.f},
 				.qd = 0.f,
-				.misc_cmd = LED_OFF
-		},
-		{
-				.id = 27,
-				.frame = 2,
-				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = -2.63f,
-				.tau = {.v = 0.f},
-				.qd = 0.f,
-				.misc_cmd = LED_OFF
-		},
-		{
-				.id = 28,
-				.frame = 3,
-				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = -3.029f,
-				.tau = {.v = 0.f},
-				.qd = -2.90f,
-				.misc_cmd = LED_OFF
-		},
-		{
-				.id = 24,
-				.frame = 1,
-				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = 0,
-				.tau = {.v = 0.f},
-				.qd = 0,
-				.misc_cmd = LED_OFF
-		},
-		{
-				.id = 25,
-				.frame = 1,
-				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = 2.23f,
-				.tau = {.v = 0.f},
-				.qd = 0,
-				.misc_cmd = LED_OFF
-		},
-		{
-				.id = 23,
-				.frame = 1,
-				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = -1.17f-.56f,
-				.tau = {.v = 0.f},
-				.qd = 0,
 				.misc_cmd = LED_OFF
 		}
-
-
 };
+
+static inline float v_pctl(float targ, float ref, float k)
+{
+	float thr = fmod_2pi(ref + PI) - PI;
+	float vr1 = cos_fast(thr);
+	float vr2 = sin_fast(thr);
+
+	float th_targ = fmod_2pi(targ + PI) - PI;
+	float vt1 = cos_fast(th_targ);
+	float vt2 = sin_fast(th_targ);
+
+	float vd1 = vt1 - vr1;
+	float vd2 = vt2 - vr2;
+
+	return k*(vr1*vd2 - vr2*vd1);
+}
 
 
 int main(void)
@@ -102,7 +61,7 @@ int main(void)
 	CAN_comm_misc(chain);
 	HAL_Delay(100);
 	for(int i = 0; i < NUM_JOINTS; i++)
-		chain[i].misc_cmd = EN_UART_ENC;
+		chain[i].misc_cmd = DIS_UART_ENC; //chain[i].misc_cmd = EN_UART_ENC;
 	for(int i = 0; i < NUM_JOINTS; i++)
 		CAN_comm_misc(&chain[i]);
 
@@ -159,21 +118,17 @@ int main(void)
 		}
 
 		float t = ((float)HAL_GetTick())*.001f;
-		//		chain[0].qd =
-		float f = 4.f;
-		chain[0].qd = chain[3].q;
-		chain[1].qd = chain[4].q;
-		chain[2].qd = chain[5].q;
+
+		chain[0].qd = 0.f;
 
 		//chain[0].qd = 3.f*sin_fast(t);
 		for(int joint = 0; joint < NUM_JOINTS; joint++)
 		{
-			float sign = -1.f;	//sign inversion because of the gearbox
-			float tau = sign*85.f*(chain[joint].qd - chain[joint].q);
-			if(tau > 50.f)
-				tau = 50.f;
-			if(tau < -50.f)
-				tau = -50.f;
+			float tau = v_pctl(chain[joint].qd,chain[joint].q, 0.5f);
+			if(tau > .4f)
+				tau = .4f;
+			if(tau < -.4f)
+				tau = -.4f;
 			chain[joint].tau.v = tau;
 		}
 		CAN_comm_motor(chain, NUM_JOINTS);
