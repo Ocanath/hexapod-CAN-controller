@@ -65,8 +65,6 @@ int main(void)
 	for(int i = 0; i < NUM_JOINTS; i++)
 		CAN_comm_misc(&chain[i]);
 
-
-
 	int led_idx = NUM_JOINTS;
 	int prev_led_idx = NUM_JOINTS-1;
 	uint32_t can_tx_ts = 0;
@@ -119,7 +117,7 @@ int main(void)
 
 		float t = ((float)HAL_GetTick())*.001f;
 
-		chain[0].qd = 0.f;
+		chain[0].qd = PI*.5f*sin_fast(t);
 
 		//chain[0].qd = 3.f*sin_fast(t);
 		for(int joint = 0; joint < NUM_JOINTS; joint++)
