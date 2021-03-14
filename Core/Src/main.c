@@ -5,11 +5,22 @@
 #include "uart-disp-tools.h"
 
 
-#define NUM_JOINTS 1
+#define NUM_JOINTS 2
 
 joint chain[NUM_JOINTS] = {
 		{
 				.id = 22,
+				.frame = 1,
+				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
+				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
+				.q = 0,
+				.q_offset = 0.f,
+				.tau = {.v = 0.f},
+				.qd = 0.f,
+				.misc_cmd = LED_OFF
+		},
+		{
+				.id = 21,
 				.frame = 1,
 				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
@@ -37,6 +48,14 @@ static inline float v_pctl(float targ, float ref, float k)
 	return k*(vr1*vd2 - vr2*vd1);
 }
 
+static inline float sat_v(float in, float hth, float lth)
+{
+	if(in > hth)
+		in = hth;
+	if(in < lth)
+		in = lth;
+	return in;
+}
 
 int main(void)
 {
@@ -77,7 +96,7 @@ int main(void)
 
 
 	uint32_t disp_ts = HAL_GetTick()+15;
-
+	uint32_t tstart = HAL_GetTick();
 	while(1)
 	{
 		if(HAL_GetTick()>can_tx_ts)
@@ -115,20 +134,22 @@ int main(void)
 			prev_led_idx = led_idx;
 		}
 
-		float t = ((float)HAL_GetTick())*.001f;
-
-		chain[0].qd = PI*.5f*sin_fast(t);
-
-		//chain[0].qd = 3.f*sin_fast(t);
-		for(int joint = 0; joint < NUM_JOINTS; joint++)
+		float t = ((float)(HAL_GetTick()-tstart))*.001f;
+		if(t < 3.f)
+			chain[1].tau.v = -0.2f;
+		else if (t >= 3.f && t < 3.2f)
 		{
-			float tau = v_pctl(chain[joint].qd,chain[joint].q, 0.5f);
-			if(tau > .4f)
-				tau = .4f;
-			if(tau < -.4f)
-				tau = -.4f;
-			chain[joint].tau.v = tau;
+			chain[1].tau.v = -0.0f;
+			chain[1].q_offset = chain[1].q;
+
 		}
+		else
+		{
+			float qd = 2.5f*TWO_PI*(.5f*sin_fast( (3.f*t-3.2f) - HALF_PI )+.5f)+.5f;
+			float tau = (qd-chain[1].q)*0.15f;
+			chain[1].tau.v = sat_v(tau, .25f, -.25f);
+		}
+		chain[0].tau.v = .1f;
 		CAN_comm_motor(chain, NUM_JOINTS);
 
 		if(HAL_GetTick()>disp_ts)
