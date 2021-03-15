@@ -66,16 +66,18 @@ void Error_Handler(void);
 #define NRF_SS_GPIO_Port GPIOC
 #define NRF_CE_Pin GPIO_PIN_2
 #define NRF_CE_GPIO_Port GPIOC
+#define MPU_SS_Pin GPIO_PIN_4
+#define MPU_SS_GPIO_Port GPIOC
+#define MPU_INT_Pin GPIO_PIN_0
+#define MPU_INT_GPIO_Port GPIOB
 #define EN_HP_Pin GPIO_PIN_10
 #define EN_HP_GPIO_Port GPIOB
 #define GP_SW_Pin GPIO_PIN_11
 #define GP_SW_GPIO_Port GPIOB
 #define SWITCH_Pin GPIO_PIN_12
 #define SWITCH_GPIO_Port GPIOB
-#define MPU_INT_Pin GPIO_PIN_11
-#define MPU_INT_GPIO_Port GPIOA
-#define MPU_SS_Pin GPIO_PIN_12
-#define MPU_SS_GPIO_Port GPIOA
+#define SPI2_NSS_Pin GPIO_PIN_6
+#define SPI2_NSS_GPIO_Port GPIOC
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
