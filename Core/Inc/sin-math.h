@@ -16,7 +16,7 @@
 #define THREE_BY_TWO_PI     	4.71238898038f
 #define TWO_PI              	6.28318530718f
 #define ONE_BY_TWO_PI 			0.1591549f
-
+#define ONE_BY_PI				0.318309886f
 #define ONE_BY_THREE_PI			1.0471975512f
 
 
