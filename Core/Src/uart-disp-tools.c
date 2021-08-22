@@ -5,6 +5,7 @@
  *      Author: Ocanath Robotman
  */
 #include "uart-disp-tools.h"
+#include "joint.h"
 
 char gl_print_str[64] = {0};
 void print_string(const char * str)
@@ -15,5 +16,7 @@ void print_string(const char * str)
 }
 void print_float(float f)
 {
-	HAL_UART_Transmit(&huart2, (uint8_t *)(&f), 4, 10);
+	floatsend_t fmt;
+	fmt.v = f;
+	HAL_UART_Transmit(&huart2, fmt.d, sizeof(float), 10);
 }
