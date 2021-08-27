@@ -6,12 +6,6 @@
 #include <string.h>
 
 
-
-static inline float wrap(float in)
-{
-	return fmod_2pi(in + PI) - PI;
-}
-
 static inline float sat_v(float in, float hth, float lth)
 {
 	if(in > hth)
@@ -112,14 +106,22 @@ int main(void)
 
 //		chain[0].tau.v = 0.f;
 		float t = ((float)HAL_GetTick())*.001f;
-		for(int m = 0; m < NUM_JOINTS; m++)
-		{
-			float phase = (float)m*0.6981f;
-			chain[m].qd = 0.333f*sin_fast(t*3.5f+phase);
-		}
-		chain[4].qd -= 70.f*DEG_TO_RAD;
-		chain[2].qd -= 70.f*DEG_TO_RAD;
-		chain[6].qd -= 70.f*DEG_TO_RAD;
+		float f = 1.5f;
+		float p1 = PI*.25f;
+		float p2 = 0.f;
+		chain[4].qd = (30.f*sin_fast(t*f + p1) - 70.f)*DEG_TO_RAD;
+		chain[2].qd = (30.f*sin_fast(t*f + p1) - 70.f)*DEG_TO_RAD;
+		chain[6].qd = (30.f*sin_fast(t*f + p1) - 70.f)*DEG_TO_RAD;
+
+		chain[0].qd = (30.f*sin_fast(t*f)+ p2)*DEG_TO_RAD;
+		chain[5].qd = (30.f*sin_fast(t*f)+ p2)*DEG_TO_RAD;
+		chain[8].qd = (30.f*sin_fast(t*f)+ p2)*DEG_TO_RAD;
+
+		chain[3].qd = 0.f;
+		chain[1].qd = 0.f;
+		chain[7].qd = 0.f;
+
+
 
 		for(int m = 0; m < NUM_JOINTS; m++)
 		{
@@ -127,7 +129,6 @@ int main(void)
 			tau = sat_v(tau, 0.3f, -0.3f);
 			chain[m].tau.v = tau;
 		}
-		chain[3].tau.v = 0.f;	//this one calib is broken, so keep still
 		joint_comm_motor(chain, NUM_JOINTS);
 
 		if(HAL_GetTick()>disp_ts)

@@ -25,7 +25,7 @@ joint chain[NUM_JOINTS] = {
 				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
-				.q_offset = -11.1128f*DEG_TO_RAD,
+				.q_offset = -8.8f*DEG_TO_RAD,
 				.tau = {.v = 0.f},
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
@@ -47,7 +47,7 @@ joint chain[NUM_JOINTS] = {
 				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
-				.q_offset = -57.574f*DEG_TO_RAD,
+				.q_offset = -113.113f*DEG_TO_RAD,
 				.tau = {.v = 0.f},
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
@@ -110,7 +110,10 @@ joint chain[NUM_JOINTS] = {
 };
 
 
-
+float wrap(float in)
+{
+	return fmod_2pi(in + PI) - PI;
+}
 
 /*
  * Performs misc mode commands. operates on a single joint variable, pass by reference.

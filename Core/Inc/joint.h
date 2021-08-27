@@ -50,6 +50,7 @@ typedef struct joint
 
 extern joint chain[NUM_JOINTS];
 
+float wrap(float in);
 void joint_comm_misc(joint * chain);
 void joint_comm_motor(joint * chain, int num_joints);
 
