@@ -140,6 +140,13 @@ void joint_comm_misc(joint * chain)
 	}
 }
 
+void update_joint_from_can_data(can_payload_t * payload, joint * j)
+{
+	float q = ((float)payload->i32[0])/4096.f;
+	j->q = wrap(q - j->q_offset);
+	j->iq_meas = ((float)payload->i16[3])/4096.f;
+}
+
 /*
  * Performs normal mode torque/position commands to motors. Operates on a list of joints,
  * stored in the chain pointer.
@@ -164,14 +171,18 @@ void joint_comm_motor(joint * chain, int num_joints)
 				if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can_rx_header, can_rx_data.d) == HAL_OK)
 				{
 					if(can_rx_header.StdId == chain[i].id)
-						chain[i].q = wrap(can_rx_data.f32[0] - chain[i].q_offset);
+					{
+						update_joint_from_can_data(&can_rx_data, &chain[i]);
+					}
 					else
 					{
 						for(int sb = 0; sb < num_joints; sb++)	//sb = search base
 						{
 							int sidx = (sb + i) % num_joints;
 							if(can_rx_header.StdId == chain[sidx].id)
-								chain[sidx].q = wrap(can_rx_data.f32[0] - chain[i].q_offset);
+							{
+								update_joint_from_can_data(&can_rx_data, &chain[sidx]);
+							}
 						}
 					}
 				}

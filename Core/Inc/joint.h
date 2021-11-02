@@ -54,6 +54,7 @@ typedef struct joint
 	float q;
 	float q_offset;	//track the phase offset present in the encoder signal
 	can_payload_t tau;
+	float iq_meas;		//motor torque, measured
 	ctl_params_t ctl;
 	float qd;
 	uint8_t misc_cmd;

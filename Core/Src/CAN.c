@@ -90,14 +90,14 @@ void CAN_Init(void)
 	can_tx_header.ExtId = 0x00;
 	can_tx_header.RTR = CAN_RTR_DATA;
 	can_tx_header.IDE = CAN_ID_STD;
-	can_tx_header.DLC = sizeof(float);	//4
+	can_tx_header.DLC = sizeof(int16_t);	//2
 	can_tx_header.TransmitGlobalTime = DISABLE;
 
 	can_rx_header.StdId = 0x000;	//gets loaded by getmessage
 	can_rx_header.ExtId = 0x00;
 	can_rx_header.IDE = CAN_ID_STD;
 	can_rx_header.RTR = CAN_RTR_DATA;
-	can_rx_header.DLC = sizeof(float);	//4
+	can_rx_header.DLC = sizeof(int32_t)+sizeof(int16_t);	//6
 	can_rx_header.Timestamp = 0;
 	can_rx_header.FilterMatchIndex = 0;
 }

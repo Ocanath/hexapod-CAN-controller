@@ -109,7 +109,7 @@ int main(void)
 		}
 
 		float err = wrap(j32->qd - j32->q);
-		j32->tau.f32[0] = -ctl_PI(err, &j32->ctl);
+		j32->tau.i16[0] = (int16_t)(-4096.f*ctl_PI(err, &j32->ctl));
 		joint_comm_motor(chain, NUM_JOINTS);
 
 		blink_motors_in_chain();
