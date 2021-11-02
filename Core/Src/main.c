@@ -5,6 +5,10 @@
 #include "uart-disp-tools.h"
 #include <string.h>
 
+static int led_idx = NUM_JOINTS;
+static int prev_led_idx = NUM_JOINTS-1;
+static uint32_t can_tx_ts = 0;
+
 
 static inline float sat_v(float in, float hth, float lth)
 {
@@ -16,6 +20,29 @@ static inline float sat_v(float in, float hth, float lth)
 }
 void can_network_keyboard_discovery(void);
 
+/*
+ * x is state variable for integral delay
+ */
+float ctl_PI(float err, ctl_params_t * ctl)
+{
+	float u = ctl->x_pi + ctl->kp*err;
+	ctl->x_pi += (err/(ctl->ki_div));
+	u = sat_v(u, ctl->tau_sat, -ctl->tau_sat);
+	ctl->x_pi = sat_v(ctl->x_pi, ctl->x_sat, -ctl->x_sat);
+	return u;
+}
+
+joint * joint_with_id(int16_t id, joint * joint_table, int num_joints)
+{
+	for(int i = 0; i < num_joints; i++)
+	{
+		if(joint_table[i].id == id)
+			return &(joint_table[i]);
+	}
+	return NULL;
+}
+
+void blink_motors_in_chain(void);
 
 int main(void)
 {
@@ -53,84 +80,39 @@ int main(void)
 	for(int i = 0; i < NUM_JOINTS; i++)
 		joint_comm_misc(&chain[i]);
 
-	int led_idx = NUM_JOINTS;
-	int prev_led_idx = NUM_JOINTS-1;
-	uint32_t can_tx_ts = 0;
-	chain[0].tau.v = 15.f;
-	chain[1].tau.v = 0;
+	chain[0].tau.f32[0] = 15.f;
+
 	joint_comm_motor(chain, NUM_JOINTS);
-	for(int m = 0; m < NUM_JOINTS; m++)
-		chain[m].qd=chain[m].q;
+//	for(int m = 0; m < NUM_JOINTS; m++)
+//		chain[m].qd=chain[m].q;
 
 	rgb_play((rgb_t){0,255,0});
 	uint32_t disp_ts = HAL_GetTick()+15;
 //	can_network_keyboard_discovery();
 
-
+	joint * j32 = joint_with_id(32,chain,NUM_JOINTS);
+	j32->ctl.kp = 0.3f;
+	j32->ctl.ki_div = 777.f;
+	j32->ctl.x_pi = 0.f;
+	j32->ctl.x_sat = 0.5f;
+	j32->ctl.tau_sat = 0.5f;
 	while(1)
 	{
-		if(HAL_GetTick()>can_tx_ts)
-		{
-			if(led_idx == NUM_JOINTS)
-			{
-				rgb_play((rgb_t){0,255,0});
-				for(int i = 0; i < NUM_JOINTS; i++)
-					chain[i].misc_cmd = LED_OFF;
-			}
-			else
-			{
-				rgb_play((rgb_t){0,0,0});
-				for(int i = 0; i < NUM_JOINTS; i++)
-					chain[i].misc_cmd = LED_OFF;
-			}
-
-			led_idx = (led_idx + 1) % (NUM_JOINTS+1);
-			if(led_idx == NUM_JOINTS)
-				can_tx_ts = HAL_GetTick()+1000;
-			else
-				can_tx_ts = HAL_GetTick()+75;
-
-			if(led_idx < NUM_JOINTS)
-			{
-				chain[led_idx].misc_cmd = LED_ON;
-				joint_comm_misc(&(chain[led_idx]));
-			}
-			if(prev_led_idx < NUM_JOINTS)
-			{
-				chain[prev_led_idx].misc_cmd = LED_OFF;
-				joint_comm_misc(&(chain[prev_led_idx]));
-			}
-
-			prev_led_idx = led_idx;
-		}
-
-//		chain[0].tau.v = 0.f;
-		float t = ((float)HAL_GetTick())*.001f;
-		float f = 1.5f;
-		float p1 = PI*.25f;
-		float p2 = 0.f;
-		chain[4].qd = (30.f*sin_fast(t*f + p1) - 70.f)*DEG_TO_RAD;
-		chain[2].qd = (30.f*sin_fast(t*f + p1) - 70.f)*DEG_TO_RAD;
-		chain[6].qd = (30.f*sin_fast(t*f + p1) - 70.f)*DEG_TO_RAD;
-
-		chain[0].qd = (30.f*sin_fast(t*f)+ p2)*DEG_TO_RAD;
-		chain[5].qd = (30.f*sin_fast(t*f)+ p2)*DEG_TO_RAD;
-		chain[8].qd = (30.f*sin_fast(t*f)+ p2)*DEG_TO_RAD;
-
-		chain[3].qd = 0.f;
-		chain[1].qd = 0.f;
-		chain[7].qd = 0.f;
-
-
 
 		for(int m = 0; m < NUM_JOINTS; m++)
 		{
-			float tau = -0.70f*wrap(chain[m].qd - chain[m].q);
-			tau = sat_v(tau, 0.3f, -0.3f);
-			chain[m].tau.v = tau;
+//			float err = wrap(chain[m].qd - chain[m].q);
+//			float tau = ctl_PI(err, 0.3f, 222.f, &x_PI[m]);
+//			x_PI[m] = sat_v(x_PI[m], 0.5f, -0.5f);
+//			tau = sat_v(-tau, 0.5f, -0.5f);
+			chain[m].tau.f32[0] = 0;
 		}
+
+		float err = wrap(j32->qd - j32->q);
+		j32->tau.f32[0] = -ctl_PI(err, &j32->ctl);
 		joint_comm_motor(chain, NUM_JOINTS);
 
+		blink_motors_in_chain();
 		if(HAL_GetTick()>disp_ts)
 		{
 			for(int i = 0; i < NUM_JOINTS; i++)
@@ -153,6 +135,7 @@ int main(void)
 
 			disp_ts = HAL_GetTick()+15;
 		}
+
 //		if(HAL_GetTick()>disp_ts)
 //		{
 //			for(int j = 0; j < NUM_JOINTS; j++)
@@ -224,6 +207,46 @@ void can_network_keyboard_discovery(void)
 		}
 		joint_comm_motor(chain, 1);
 
+	}
+
+}
+
+
+void blink_motors_in_chain(void)
+{
+	if(HAL_GetTick()>can_tx_ts)
+	{
+		if(led_idx == NUM_JOINTS)
+		{
+			rgb_play((rgb_t){0,255,0});
+			for(int i = 0; i < NUM_JOINTS; i++)
+				chain[i].misc_cmd = LED_OFF;
+		}
+		else
+		{
+			rgb_play((rgb_t){0,0,0});
+			for(int i = 0; i < NUM_JOINTS; i++)
+				chain[i].misc_cmd = LED_OFF;
+		}
+
+		led_idx = (led_idx + 1) % (NUM_JOINTS+1);
+		if(led_idx == NUM_JOINTS)
+			can_tx_ts = HAL_GetTick()+1000;
+		else
+			can_tx_ts = HAL_GetTick()+75;
+
+		if(led_idx < NUM_JOINTS)
+		{
+			chain[led_idx].misc_cmd = LED_ON;
+			joint_comm_misc(&(chain[led_idx]));
+		}
+		if(prev_led_idx < NUM_JOINTS)
+		{
+			chain[prev_led_idx].misc_cmd = LED_OFF;
+			joint_comm_misc(&(chain[prev_led_idx]));
+		}
+
+		prev_led_idx = led_idx;
 	}
 
 }

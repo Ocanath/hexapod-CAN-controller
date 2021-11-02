@@ -35,6 +35,16 @@ typedef union
 	uint8_t d[sizeof(uint32_t)];
 }uint32_fmt_t;
 
+typedef struct ctl_params_t
+{
+	float kp;
+	float ki_div;
+	float kd;
+	float x_pi;
+	float x_sat;
+	float tau_sat;
+}ctl_params_t;
+
 typedef struct joint
 {
 	uint16_t id;
@@ -43,7 +53,8 @@ typedef struct joint
 	mat4 him1_i;
 	float q;
 	float q_offset;	//track the phase offset present in the encoder signal
-	floatsend_t tau;
+	can_payload_t tau;
+	ctl_params_t ctl;
 	float qd;
 	uint8_t misc_cmd;
 }joint;

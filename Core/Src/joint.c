@@ -15,7 +15,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = -325.32539f*DEG_TO_RAD,
-				.tau = {.v = 0.f},
+				.tau = {.f32 = {0.f, 0.f} },
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -26,7 +26,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = -8.8f*DEG_TO_RAD,
-				.tau = {.v = 0.f},
+				.tau = {.f32 = {0.f, 0.f} },
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -37,7 +37,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = 27.275f*DEG_TO_RAD,
-				.tau = {.v = 0.f},
+				.tau = {.f32 = {0.f, 0.f} },
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -48,7 +48,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = -113.113f*DEG_TO_RAD,
-				.tau = {.v = 0.f},
+				.tau = {.f32 = {0.f, 0.f} },
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -58,8 +58,8 @@ joint chain[NUM_JOINTS] = {
 				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
-				.q_offset = -154.154f*DEG_TO_RAD,
-				.tau = {.v = 0.f},
+				.q_offset = 62.621f*DEG_TO_RAD,
+				.tau = {.f32 = {0.f, 0.f} },
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -70,7 +70,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = -179.179f*DEG_TO_RAD,
-				.tau = {.v = 0.f},
+				.tau = {.f32 = {0.f, 0.f} },
 				.qd = 0.,
 				.misc_cmd = LED_OFF
 		},
@@ -81,7 +81,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = 49.49*DEG_TO_RAD,
-				.tau = {.v = 0.f},
+				.tau = {.f32 = {0.f, 0.f} },
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -92,18 +92,18 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = -27.27*DEG_TO_RAD,
-				.tau = {.v = 0.f},
+				.tau = {.f32 = {0.f, 0.f} },
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
 		{						//8
-				.id = 22,
+				.id = 32,
 				.frame = 3,
 				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = -275.275*DEG_TO_RAD,
-				.tau = {.v = 0.f},
+				.tau = {.f32 = {0.f, 0.f} },
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		}
@@ -164,14 +164,14 @@ void joint_comm_motor(joint * chain, int num_joints)
 				if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can_rx_header, can_rx_data.d) == HAL_OK)
 				{
 					if(can_rx_header.StdId == chain[i].id)
-						chain[i].q = can_rx_data.v - chain[i].q_offset;
+						chain[i].q = wrap(can_rx_data.f32[0] - chain[i].q_offset);
 					else
 					{
 						for(int sb = 0; sb < num_joints; sb++)	//sb = search base
 						{
 							int sidx = (sb + i) % num_joints;
 							if(can_rx_header.StdId == chain[sidx].id)
-								chain[sidx].q = can_rx_data.v;
+								chain[sidx].q = wrap(can_rx_data.f32[0] - chain[i].q_offset);
 						}
 					}
 				}
