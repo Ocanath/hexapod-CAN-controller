@@ -14,14 +14,16 @@
 #define RAD_TO_DEG	57.2957795
 #define DEG_TO_RAD	0.0174532925f
 
-#define NUM_JOINTS 9
+#define NUM_JOINTS 1
 
 enum {
 	LED_ON = 0xDE,
 	LED_OFF =0xFE,
 	LED_BLINK= 0xAA,
 	EN_UART_ENC = 0x34,
-	DIS_UART_ENC = 0x35
+	DIS_UART_ENC = 0x35,
+	SET_FOC_MODE = 0x36,
+	SET_SINUSOIDAL_MODE = 0x37
 };
 
 typedef struct mat4
@@ -52,12 +54,21 @@ typedef struct joint
 	mat4 h0_i;
 	mat4 him1_i;
 	float q;
+	int32_t q32;
+
+	float dq;
+	uint32_t ts_dq;	//timestamp associated with last recieved sample of q
+	float prev_q;
+
 	float q_offset;	//track the phase offset present in the encoder signal
+
 	can_payload_t tau;
 	float iq_meas;		//motor torque, measured
 	ctl_params_t ctl;
 	float qd;
 	uint8_t misc_cmd;
+
+	uint8_t encoder_mode;
 }joint;
 
 extern joint chain[NUM_JOINTS];
@@ -65,5 +76,7 @@ extern joint chain[NUM_JOINTS];
 float wrap(float in);
 void joint_comm_misc(joint * chain);
 void joint_comm_motor(joint * chain, int num_joints);
+uint32_t get_ts_us(void);
+int32_t wrap_fixed(int32_t in, uint32_t k);
 
 #endif /* INC_JOINT_H_ */

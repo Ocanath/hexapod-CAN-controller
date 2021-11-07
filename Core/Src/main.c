@@ -42,6 +42,15 @@ joint * joint_with_id(int16_t id, joint * joint_table, int num_joints)
 	return NULL;
 }
 
+void buffer_data(uint8_t * d, int size_d, uint8_t * buf, int * bidx)
+{
+	for(int i = 0; i < size_d; i++)
+	{
+		buf[*bidx] = d[i];
+		*bidx = *bidx + 1;
+	}
+}
+
 void blink_motors_in_chain(void);
 
 int main(void)
@@ -59,10 +68,13 @@ int main(void)
 	MX_USART2_UART_Init();
 	MX_SPI1_Init();
 	MX_TIM1_Init();
+	MX_TIM2_Init();
 
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 
 	uint32_t td = 0;
 	for(uint32_t start_ts = HAL_GetTick(); td < 3000;)
@@ -73,12 +85,21 @@ int main(void)
 		rgb_play((rgb_t){amp/4, amp, amp/2});
 	}
 
-	joint_comm_misc(chain);
+//	joint_comm_misc(chain);
 	HAL_Delay(100);
+
 	for(int i = 0; i < NUM_JOINTS; i++)
 		chain[i].misc_cmd = EN_UART_ENC; //chain[i].misc_cmd = EN_UART_ENC;
 	for(int i = 0; i < NUM_JOINTS; i++)
 		joint_comm_misc(&chain[i]);
+
+	HAL_Delay(100);
+
+	for(int i = 0; i < NUM_JOINTS; i++)
+		chain[i].misc_cmd = SET_FOC_MODE;//SET_FOC_MODE; //chain[i].misc_cmd = EN_UART_ENC;
+	for(int i = 0; i < NUM_JOINTS; i++)
+		joint_comm_misc(&chain[i]);
+
 
 	chain[0].tau.f32[0] = 15.f;
 
@@ -91,11 +112,14 @@ int main(void)
 //	can_network_keyboard_discovery();
 
 	joint * j32 = joint_with_id(32,chain,NUM_JOINTS);
-	j32->ctl.kp = 0.3f;
-	j32->ctl.ki_div = 777.f;
+	j32->ctl.kp = 0.5f;
+	j32->ctl.ki_div = 3999.f;
 	j32->ctl.x_pi = 0.f;
 	j32->ctl.x_sat = 0.5f;
-	j32->ctl.tau_sat = 0.5f;
+	j32->ctl.tau_sat = 0.2f;
+
+
+	uint32_t prev_us_ts = 0;
 	while(1)
 	{
 
@@ -109,39 +133,32 @@ int main(void)
 		}
 
 		float err = wrap(j32->qd - j32->q);
-		j32->tau.i16[0] = (int16_t)(-4096.f*ctl_PI(err, &j32->ctl));
+		float u = ctl_PI(err, &j32->ctl);
+		u -= j32->dq*.005f;
+//		u = 0;
+		j32->tau.i16[0] = (int16_t)(-4096.f*u);
 		joint_comm_motor(chain, NUM_JOINTS);
 
 		blink_motors_in_chain();
-		if(HAL_GetTick()>disp_ts)
+
+		uint32_t tick = HAL_GetTick();
+		if(tick >= disp_ts)
 		{
-			for(int i = 0; i < NUM_JOINTS; i++)
-			{
-				int pv = (int)(chain[i].q*RAD_TO_DEG*10000.f);
-				char sc = '+';
-				if(pv < 0)
-				{
-					sc = '-';
-					pv = -pv;
-				}
-				int pv10 = pv/10000;
+			disp_ts = tick+5;
 
-				for(int i = 0; i < 64; i++)
-					gl_print_str[i] = 0;
-				sprintf(gl_print_str, "%d.q=%c%d.%.4d, ", chain[i].id, sc, pv10, pv);
-				print_string(gl_print_str);
-			}
-			print_string("\r\n");
+			floatsend_t fmt;
+			int bidx = 0;
+			uint8_t buf[3*sizeof(float)];
 
-			disp_ts = HAL_GetTick()+15;
+			fmt.v = chain[0].dq*.1f;
+			buffer_data(fmt.d, sizeof(float), buf, &bidx);
+			fmt.v = chain[0].q;
+			buffer_data(fmt.d, sizeof(float), buf, &bidx);
+			fmt.v = u;
+			buffer_data(fmt.d,sizeof(float),buf,&bidx);
+
+			HAL_UART_Transmit_IT(&huart2,buf,3*sizeof(float));
 		}
-
-//		if(HAL_GetTick()>disp_ts)
-//		{
-//			for(int j = 0; j < NUM_JOINTS; j++)
-//				print_float(chain[j].q);
-//			disp_ts = HAL_GetTick()+15;
-//		}
 
 	}
 }
