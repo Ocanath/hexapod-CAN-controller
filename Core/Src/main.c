@@ -3,6 +3,7 @@
 #include "CAN.h"
 #include "rgb.h"
 #include "uart-disp-tools.h"
+#include "trig_fixed.h"
 #include <string.h>
 
 static int led_idx = NUM_JOINTS;
@@ -112,11 +113,12 @@ int main(void)
 //	can_network_keyboard_discovery();
 
 	joint * j32 = joint_with_id(32,chain,NUM_JOINTS);
-	j32->ctl.kp = 0.5f;
-	j32->ctl.ki_div = 3999.f;
+	j32->ctl.kp = 5.4f;
+	j32->ctl.ki_div = 377.f;
 	j32->ctl.x_pi = 0.f;
-	j32->ctl.x_sat = 0.5f;
-	j32->ctl.tau_sat = 0.2f;
+	j32->ctl.x_sat = 1.5f;
+	j32->ctl.kd = 0.14f;
+	j32->ctl.tau_sat = 0.25f;
 
 	while(1)
 	{
@@ -130,12 +132,17 @@ int main(void)
 			chain[m].tau.f32[0] = 0;
 		}
 
-		float err = wrap(j32->qd - j32->q);
+		float t = ((float)HAL_GetTick())*.001f;
+
+		j32->qd = 1.5f*sin_fast(t);
+
+		float dqout_from_rotor = (j32->dq_rotor*-0.0625f);	//convert rotor speed to gearbox speed in rad/s. Sign flip from mechanism
+
+  		float err = wrap(j32->qd - j32->q);
 		float u = ctl_PI(err, &j32->ctl);
-		u -= j32->dq_output*.005f;
-//		u = 0;
-//		j32->tau.i16[0] = (int16_t)(-4096.f*u);
-		j32->tau.i16[0] = 3000;
+		u -= j32->ctl.kd*dqout_from_rotor;//if we use rotor as damping instead of output velocity estimate, much lower noise (and higher damping as a result) is possible
+
+		j32->tau.i16[0] = (int16_t)(-4096.f*u);
 		joint_comm_motor(chain, NUM_JOINTS);
 
 		blink_motors_in_chain();
@@ -147,18 +154,14 @@ int main(void)
 
 			floatsend_t fmt;
 			int bidx = 0;
-			uint8_t buf[4*sizeof(float)];
+			uint8_t buf[2*sizeof(float)];
 
-			fmt.v = chain[0].dq_output;
-			buffer_data(fmt.d, sizeof(float), buf, &bidx);
-			fmt.v = chain[0].dq_rotor;
-			buffer_data(fmt.d, sizeof(float), buf, &bidx);
 			fmt.v = chain[0].q;
 			buffer_data(fmt.d, sizeof(float), buf, &bidx);
-			fmt.v = u;
-			buffer_data(fmt.d,sizeof(float),buf,&bidx);
+			fmt.v = chain[0].qd;
+			buffer_data(fmt.d, sizeof(float), buf, &bidx);
 
-			HAL_UART_Transmit_IT(&huart2,buf,4*sizeof(float));
+			HAL_UART_Transmit_IT(&huart2,buf,2*sizeof(float));
 		}
 
 	}
