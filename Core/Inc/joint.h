@@ -53,12 +53,19 @@ typedef struct joint
 	int frame;
 	mat4 h0_i;
 	mat4 him1_i;
-	float q;
-	int32_t q32;
 
-	float dq;
+	//
+	float q;
+	int16_t q16;
+
+	float dq_rotor;
+	int16_t dq_rotor16;
+
+
+	float dq_output;	//estimated
+	int16_t prev_q16;	//16bit loaded previous q, for fast unwrapping in fixed point angles
 	uint32_t ts_dq;	//timestamp associated with last recieved sample of q
-	float prev_q;
+
 
 	float q_offset;	//track the phase offset present in the encoder signal
 
@@ -69,6 +76,7 @@ typedef struct joint
 	uint8_t misc_cmd;
 
 	uint8_t encoder_mode;
+	uint8_t control_mode;
 }joint;
 
 extern joint chain[NUM_JOINTS];

@@ -118,8 +118,6 @@ int main(void)
 	j32->ctl.x_sat = 0.5f;
 	j32->ctl.tau_sat = 0.2f;
 
-
-	uint32_t prev_us_ts = 0;
 	while(1)
 	{
 
@@ -134,9 +132,10 @@ int main(void)
 
 		float err = wrap(j32->qd - j32->q);
 		float u = ctl_PI(err, &j32->ctl);
-		u -= j32->dq*.005f;
+		u -= j32->dq_output*.005f;
 //		u = 0;
-		j32->tau.i16[0] = (int16_t)(-4096.f*u);
+//		j32->tau.i16[0] = (int16_t)(-4096.f*u);
+		j32->tau.i16[0] = 3000;
 		joint_comm_motor(chain, NUM_JOINTS);
 
 		blink_motors_in_chain();
@@ -148,16 +147,18 @@ int main(void)
 
 			floatsend_t fmt;
 			int bidx = 0;
-			uint8_t buf[3*sizeof(float)];
+			uint8_t buf[4*sizeof(float)];
 
-			fmt.v = chain[0].dq*.1f;
+			fmt.v = chain[0].dq_output;
+			buffer_data(fmt.d, sizeof(float), buf, &bidx);
+			fmt.v = chain[0].dq_rotor;
 			buffer_data(fmt.d, sizeof(float), buf, &bidx);
 			fmt.v = chain[0].q;
 			buffer_data(fmt.d, sizeof(float), buf, &bidx);
 			fmt.v = u;
 			buffer_data(fmt.d,sizeof(float),buf,&bidx);
 
-			HAL_UART_Transmit_IT(&huart2,buf,3*sizeof(float));
+			HAL_UART_Transmit_IT(&huart2,buf,4*sizeof(float));
 		}
 
 	}

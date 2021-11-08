@@ -9,7 +9,7 @@
 #define INC_INIT_H_
 #include "main.h"
 
-#define MICROSECOND_TIMER_PERIOD (1<<31)	//32 bit timer. 24 bits
+#define MICROSECOND_TIMER_PERIOD 0xFFFFFFFF	//32 bit timer. 24 bits
 
 ADC_HandleTypeDef hadc1;
 

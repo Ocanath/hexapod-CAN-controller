@@ -5,7 +5,7 @@
  *      Author: Ocanath
  */
 #include "joint.h"
-
+#include "trig_fixed.h"
 
 joint chain[NUM_JOINTS] = {
 //		{						//0
@@ -127,7 +127,13 @@ void joint_comm_misc(joint * chain)
 	for(uint32_t exp_ts = HAL_GetTick()+1; HAL_GetTick() < exp_ts;)
 	{
 		if(HAL_CAN_IsTxMessagePending(&hcan1,can_tx_mailbox) == 0)
+		{
+			if(chain->misc_cmd == EN_UART_ENC || chain->misc_cmd == DIS_UART_ENC)
+				chain->encoder_mode = chain->misc_cmd;
+			if(chain->misc_cmd == SET_FOC_MODE || chain->misc_cmd == SET_SINUSOIDAL_MODE)
+				chain->control_mode = chain->misc_cmd;
 			break;
+		}
 	}
 	for(uint32_t exp_ts = HAL_GetTick()+10;  HAL_GetTick() < exp_ts;)
 	{
@@ -173,33 +179,40 @@ static int vdiv = 1;
 
 void update_joint_from_can_data(can_payload_t * payload, joint * j)
 {
-	j->q32 = payload->i32[0];
-	float q12b = ((float)(payload->i32[0]));
-
-	if(count >= vdiv)
+	if(j->encoder_mode == EN_UART_ENC)
 	{
-		uint32_t t_elapsed = get_ts_us();
-		TIM2->CNT = 0;	//you have 35 seconds until this wraps around
-		j->ts_dq = t_elapsed;
+		j->q16 = payload->i16[0];
+		j->dq_rotor16 = payload->i16[1];
 
-		//1e6/4096 = 244.140625.
-		j->dq = ((q12b - j->prev_q)*244.140625f) / ((float)t_elapsed);
-		j->prev_q = q12b;
+		if(count >= vdiv)
+		{
+			uint32_t t_elapsed = get_ts_us();
+			TIM2->CNT = 0;	//you have 35 seconds until this wraps around
+			j->ts_dq = t_elapsed;
 
-		count = 0;
+			int32_t wrapped_dif = wrap_2pi_12b( (int32_t)(j->q16 - j->prev_q16) );
+			j->prev_q16 = j->q16;
+
+			wrapped_dif = (wrapped_dif*1000000) >> 12;
+			j->dq_output = ((float)wrapped_dif) / ((float)t_elapsed);
+			count = 0;
+		}
+		count++;
+
+		float q12b = (float)(j->q16);
+		q12b *= 0.015625f;
+		q12b *= 0.015625f;
+		j->q = wrap(q12b - j->q_offset);
+
+		j->dq_rotor = (float)(j->dq_rotor16) * 0.062500f;	//dividing by 16 expresses velocity in units of rad/sec
 	}
-	count++;
+
 
 	//j->iq_meas = ((float)payload->i16[3])/4096.f;
 	float iq12b = ((float)payload->i16[2]);
 	iq12b *= 0.015625f;
 	iq12b *= 0.015625f;
 	j->iq_meas = iq12b;
-
-//	j->q = q12b/4096.f;
-	q12b *= 0.015625f;
-	q12b *= 0.015625f;
-	j->q = wrap(q12b - j->q_offset);
 }
 
 /*
