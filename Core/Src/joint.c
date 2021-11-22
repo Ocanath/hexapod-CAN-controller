@@ -98,13 +98,12 @@ joint chain[NUM_JOINTS] = {
 //		},
 		{						//8
 				.id = 32,
-				.frame = 3,
-				.h0_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
+				.frame = 1,	//frame number will determine how we initialize the link definition and child id
+				.hb_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
+				.child = NULL,	//it is VERY important to initialize this to NULL. Otherwise your program will explode in a massive disgusting segfault orgy.
 				.q_offset = -275.275*DEG_TO_RAD,
 				.tau = {.f32 = {0.f, 0.f} },
-				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		}
 };
@@ -203,6 +202,19 @@ void update_joint_from_can_data(can_payload_t * payload, joint * j)
 		q12b *= 0.015625f;
 		q12b *= 0.015625f;
 		j->q = wrap(q12b - j->q_offset);
+
+
+
+		{	//precompute sin and cos theta for kinematics here.	 TODO: benchmark the two options
+			int32_t q16wrapped = wrap_2pi_12b(j->q16);
+			int32_t sth = sin_12b(q16wrapped);
+			int32_t cth = cos_12b(q16wrapped);
+			j->sin_q = ((float)sth)/4096.f;
+			j->cos_q = ((float)cth)/4096.f;
+
+	//		j->sin_q = sin_fast(j->q);	//this might actually potentially be faster?
+	//		j->cos_q = cos_fast(j->q);
+		}
 
 		j->dq_rotor = (float)(j->dq_rotor16) * 0.062500f;	//dividing by 16 expresses velocity in units of rad/sec
 	}

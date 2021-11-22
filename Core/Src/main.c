@@ -4,6 +4,7 @@
 #include "rgb.h"
 #include "uart-disp-tools.h"
 #include "trig_fixed.h"
+#include "hexapod_params.h"
 #include <string.h>
 
 static int led_idx = NUM_JOINTS;
@@ -52,6 +53,9 @@ void buffer_data(uint8_t * d, int size_d, uint8_t * buf, int * bidx)
 	}
 }
 
+
+
+
 void blink_motors_in_chain(void);
 
 int main(void)
@@ -77,15 +81,16 @@ int main(void)
 
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 
-	uint32_t td = 0;
-	for(uint32_t start_ts = HAL_GetTick(); td < 3000;)
-	{
-		td = HAL_GetTick() - start_ts;
-		float t = ((float)td)*.001f;
-		uint8_t amp = (uint8_t)(t*(255.f/3000.f));
-		rgb_play((rgb_t){amp/4, amp, amp/2});
-	}
+	setup_dynamic_hex(&gl_hex);		//setup the structure to do forward kinematics
 
+	uint32_t start_ts = HAL_GetTick();
+	for(uint32_t exp_ts = start_ts + 3000; HAL_GetTick() < exp_ts;)
+	{
+		uint32_t t = HAL_GetTick() - start_ts;
+		uint8_t c = (t*255)/3000;
+		rgb_t rgb = {c,c,c};
+		rgb_play(rgb);
+	}
 //	joint_comm_misc(chain);
 	HAL_Delay(100);
 
@@ -113,12 +118,12 @@ int main(void)
 //	can_network_keyboard_discovery();
 
 	joint * j32 = joint_with_id(32,chain,NUM_JOINTS);
-	j32->ctl.kp = 5.4f;
+	j32->ctl.kp = 9.0f;
 	j32->ctl.ki_div = 377.f;
 	j32->ctl.x_pi = 0.f;
 	j32->ctl.x_sat = 1.5f;
-	j32->ctl.kd = 0.14f;
-	j32->ctl.tau_sat = 0.25f;
+	j32->ctl.kd = 0.20f/3.f;
+	j32->ctl.tau_sat = 0.85f;
 
 	while(1)
 	{
@@ -134,7 +139,8 @@ int main(void)
 
 		float t = ((float)HAL_GetTick())*.001f;
 
-		j32->qd = 1.5f*sin_fast(t);
+//		j32->qd = 1.5f*sin_fast(t);
+		j32->qd = 2.0f;
 
 		float dqout_from_rotor = (j32->dq_rotor*-0.0625f);	//convert rotor speed to gearbox speed in rad/s. Sign flip from mechanism
 
@@ -143,7 +149,58 @@ int main(void)
 		u -= j32->ctl.kd*dqout_from_rotor;//if we use rotor as damping instead of output velocity estimate, much lower noise (and higher damping as a result) is possible
 
 		j32->tau.i16[0] = (int16_t)(-4096.f*u);
+
+
+
 		joint_comm_motor(chain, NUM_JOINTS);
+
+		/*
+		 * HEY!!!!!!!!!!!!!!!!!!!!!
+		 * HEY HEY HEY HEY!!!!!!!!!!!!!!!!!!!!!
+		 * ALKSJALSDJALSDJALSDJALSDJALSDJALSDJALSDJ
+		 *
+		 *
+		 * This does forward kinematics for properly initialized chain array,
+		 * where you do triples with ascending frame association.
+		 *
+		 * It is floating point and appears to... disagree...
+		 * with visual studio. issue likely arises from floating point numbers
+		 * in the wrong scale, i.e. mixing 0-1 scale with
+		 * 100 scale when computing distances.
+		 *
+		 *
+		 * Solutions!!!
+		 * 1. 32bit FIXED POINT.
+		 * 		This option will be the absolute fastest option available.
+		 * 		However, you can't just scale up mm to mm*4096 and do these
+		 * 		calculations with impunity.
+		 *
+		 * 		For instance, (700mm * 4096)*4096 is a 33 bit number!!
+		 *
+		 * 		This is most likely the reason we're losing reso. It's
+		 * 		also a reasonable culprit for simulation instability when
+		 * 		doing numerical IK (by updating q+=tau/bignumber)
+		 *
+		 * 2. 32bit floats, with normalized distance
+		 * 		The idea here is that we would avoid
+		 * 		repeated/accumulated floating point errors by
+		 * 		normalizing our translations, doing FK, then
+		 * 		re-scaling the translations back.
+		 *
+		 * 		This would be similar to, for instance,
+		 * 		converting all the link distances from mm to m
+		 * 		or inches, doing FK, then converting back to inches.
+		 *
+		 * 		This would potentially improve accuracy
+		 *
+		 *
+		 *
+		 *
+		 *
+		for(int leg = 0; leg < NUM_LEGS; leg++)
+			forward_kinematics(gl_hex.hb_0[leg], gl_hex.p_joint[leg]);
+		 */
+
 
 		blink_motors_in_chain();
 

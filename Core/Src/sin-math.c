@@ -6,6 +6,13 @@
  */
 #include "sin-math.h"
 
+
+static const float sc1 = 117.f;
+static const float sc2 = -834.f;
+static const float sc3 = 85.f;
+static const float sc4 = 4078.f;
+static const float sc5 = 1.f;
+
 float sin_fast(float theta)
 {
 	theta = fmod_2pi(theta+PI)-PI;	//get theta into the range of -pi to pi. this line wraps any arbitrary theta to -pi to pi
@@ -29,11 +36,18 @@ float sin_fast(float theta)
 		is_neg = 1;
 		theta = PI + theta;
 	}
+    else if (theta < 0 && theta >= -HALF_PI) // necessary addition for 4th order asymmetry
+    {
+        is_neg = 1;
+        theta = -theta;
+    }
 
-	float theta_2 = theta*theta;
-	float theta_3 = theta_2*theta;
-	float theta_5 = theta_3*theta_2;
-	float res = theta-theta_3*ONE_BY_THREE_FACTORIAL + theta_5 * ONE_BY_FIVE_FACTORIAL;
+	float theta2 = theta*theta;
+	float theta3 = theta2*theta;
+	float theta4 = theta3*theta;
+    float res = sc1 * theta4 + sc2 * theta3 + sc3 * theta2 + sc4 * theta + sc5;
+    res /= 4096.f;
+
 	if(is_neg == 1)
 		return -res;
 	else
