@@ -77,6 +77,46 @@ int32_t cos_12b(int32_t theta)
     return sin_12b(theta + HALF_PI_12B);
 }
 
+/**/
+int32_t sin_lookup(int32_t theta, int result_order)
+{
+	/*Guarantee theta is in lookup table range.*/
+	theta = wrap_2pi_12b(theta);	//initial bounding performed with modulo
+
+	//The wrap call above means we have to check fewer 'quadrants'. Only 3 quadrants required to check
+    uint8_t is_neg = 0;
+    if (theta > HALF_PI_12B && theta <= PI_12B) // if positiveand in quadrant II, put in quadrant I(same)
+    {
+        theta = PI_12B - theta;
+    }
+    else if (theta < -HALF_PI_12B && theta >= -PI_12B) // if negativeand in quadrant III,
+    {
+        is_neg = 1;
+        theta = theta + PI_12B;
+    }
+    else if (theta < 0 && theta >= -HALF_PI_12B) // necessary addition for 4th order asymmetry
+    {
+        is_neg = 1;
+        theta = -theta;
+    }	//further bounding performed with on a per-quadrant basis, recording the sign before transforming it
+
+    //WE MUST DO THIS HERE (because theta could be nonzero at the top)
+    if(theta == 0)	//we lookup into our table with theta-1, so we must catch the 0 case. sin(0) = 0
+		return 0;	//this is the value, not a code.
+
+
+    int shift = ORDER_LOOKUP_TABLE - result_order;	//determine the shift required to produce the desired radix
+    if(is_neg)
+    	return (-lookup_sin_30bit[theta-1]) >> shift;
+    else
+    	return (lookup_sin_30bit[theta-1]) >> shift;
+}
+
+int32_t cos_lookup(int32_t theta, int result_order)
+{
+	return sin_lookup(theta+HALF_PI_12B,result_order);
+}
+
 
 int32_t atan2_fixed(int32_t y, int32_t x)
 {

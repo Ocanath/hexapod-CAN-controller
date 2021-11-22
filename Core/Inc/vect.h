@@ -7,6 +7,7 @@
 
 #ifndef INC_VECT_H_
 #define INC_VECT_H_
+#include <stdint.h>
 
 typedef float vect3[3];
 typedef struct vect3_t
@@ -56,10 +57,10 @@ typedef struct mat4_32b_t
 }mat4_32b_t;
 
 typedef int32_t vect3_32b[3];
-typedef struct vect3_t
+typedef struct vect3_32b_t
 {
 	vect3_32b v;
-}vect3_t;
+}vect3_32b_t;
 typedef int32_t vect6_32b[6];
 typedef struct vect6_32b_t
 {
@@ -75,5 +76,8 @@ mat4_t Hz(float angle);
 mat4_t Hy(float angle);
 mat4_t Hx(float angle);
 void ht_mat4_mult_pbr(mat4_t * m1, mat4_t * m2, mat4_t * ret);
+
+void ht32_mult_pbr(mat4_32b_t * m1, mat4_32b_t * m2, mat4_32b_t * ret);
+void cross32_pbr(vect3_32b_t * v_a, vect3_32b_t * v_b, vect3_32b_t * ret, int n);
 
 #endif /* INC_VECT_H_ */

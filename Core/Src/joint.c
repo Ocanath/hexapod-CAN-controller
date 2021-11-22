@@ -206,14 +206,16 @@ void update_joint_from_can_data(can_payload_t * payload, joint * j)
 
 
 		{	//precompute sin and cos theta for kinematics here.	 TODO: benchmark the two options
-			int32_t q16wrapped = wrap_2pi_12b(j->q16);
-			int32_t sth = sin_12b(q16wrapped);
-			int32_t cth = cos_12b(q16wrapped);
-			j->sin_q = ((float)sth)/4096.f;
-			j->cos_q = ((float)cth)/4096.f;
+			int32_t q32wrapped = wrap_2pi_12b( (int32_t)j->q16 );
 
-	//		j->sin_q = sin_fast(j->q);	//this might actually potentially be faster?
-	//		j->cos_q = cos_fast(j->q);
+			int32_t sth = sin_lookup(q32wrapped, 30);
+			int32_t cth = cos_lookup(q32wrapped, 30);
+
+			j->sin_q_float = ((float)sth)/1073741824.f;
+			j->cos_q_float = ((float)cth)/1073741824.f; //convert 30bit scaled value. 1073741824.f = 2^30
+
+			j->sin_q = sth >> 15;	//constrain sin_q and cos_q radix to 2^15
+			j->cos_q = cth >> 15;
 		}
 
 		j->dq_rotor = (float)(j->dq_rotor16) * 0.062500f;	//dividing by 16 expresses velocity in units of rad/sec

@@ -66,8 +66,10 @@ typedef struct joint
 	int16_t dq_rotor16;
 	float iq_meas;		//motor torque, measured
 	//Computed once per new value and saved in the wrapper structure for speed
-	float sin_q;
-	float cos_q;
+	int32_t sin_q;
+	int32_t cos_q;
+	float sin_q_float;
+	float cos_q_float;
 
 	//Mapping from real to idealized for encoder
 	float q_offset;	//track the phase offset present in the encoder signal

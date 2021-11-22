@@ -128,8 +128,8 @@ void forward_kinematics(mat4_t * hb_0, joint* f1_joint)
 	joint* j = f1_joint;
 	while(j != NULL)
 	{
-		float cth = j->cos_q;
-		float sth = j->sin_q;
+		float cth = j->cos_q_float;
+		float sth = j->sin_q_float;
 
 		mat4_t* r = &j->h_link;
 		mat4_t * him1_i = &j->him1_i;	//specify lookup ptr first for faster loading

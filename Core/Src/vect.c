@@ -65,7 +65,7 @@ void ht_mat4_mult_pbr(mat4_t * m1, mat4_t * m2, mat4_t * ret)
 		for(c = 0; c < 4; c++)
 		{
 			tmp = 0.f;
-			for(int i = 0; i < 4; i++)
+			for(i = 0; i < 4; i++)
 			{
 				tmp += m1->m[r][i] * m2->m[i][c];
 			}
