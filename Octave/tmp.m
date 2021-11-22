@@ -20,3 +20,16 @@ end
 %%
 
 syms d a alpha
+%%
+n = 8;
+
+v = 198.31677025;
+v6b = int32(floor(v*2.^n));
+
+vm = bitshift(int32(4096)*v6b, -n);
+
+
+res = double(vm)/4096;
+v - res
+
+

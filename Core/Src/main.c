@@ -181,6 +181,22 @@ int main(void)
 		 * 		also a reasonable culprit for simulation instability when
 		 * 		doing numerical IK (by updating q+=tau/bignumber)
 		 *
+		 *		----------------FIXED POINT mm SCALING orders of magnitude maximum possible distances------------------
+		 *
+		 *		The max distance X you can have at any point in your 32bit fixed point kinematics calculation, given a scaling order n
+		 *		is given by:
+		 			X < (2^31-1)/(4096*2^n);
+					X > (-2^31)/(4096*2^n);
+		 *
+		 *		That means:
+		 *			order 8, draw a sphere centered at origin_baseframe of radius 2047mm. If any part
+		 *				of your robot, or any imaginary point your robot foot might want to try and go to,
+		 *				breaks out of that sphere, you'll overflow.
+		 *
+		 *		Reasonable orders are 4-8. You have to be careful about adding terms;
+		 *		if you're order 8, but you add two sin*X terms, your real order is 9 wrt. overflow risk
+		 *
+		 *
 		 * 2. 32bit floats, with normalized distance
 		 * 		The idea here is that we would avoid
 		 * 		repeated/accumulated floating point errors by
@@ -191,10 +207,12 @@ int main(void)
 		 * 		converting all the link distances from mm to m
 		 * 		or inches, doing FK, then converting back to inches.
 		 *
-		 * 		This would potentially improve accuracy
+		 * 		This would potentially improve accuracy, but would not be
+		 * 		much faster.
 		 *
 		 *
-		 *
+		 * 3. 64bit fixed. This allows for a large scaling factor for translations without risk of overflow.
+		 * 		Same as option 1. but twice as slow.
 		 *
 		 *
 		for(int leg = 0; leg < NUM_LEGS; leg++)
