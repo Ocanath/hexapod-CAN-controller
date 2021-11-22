@@ -48,6 +48,26 @@ typedef struct mat6_t
 	mat6 m;
 }mat6_t;
 
+/*********************Fixed point matrix-vect types*****************************/
+typedef int32_t mat4_32b[4][4];
+typedef struct mat4_32b_t
+{
+	mat4_32b m;
+}mat4_32b_t;
+
+typedef int32_t vect3_32b[3];
+typedef struct vect3_t
+{
+	vect3_32b v;
+}vect3_t;
+typedef int32_t vect6_32b[6];
+typedef struct vect6_32b_t
+{
+	vect6_32b v;
+}vect6_32b_t;
+
+
+
 mat4_t mat4_t_mult(mat4_t m1, mat4_t m2);
 void mat4_t_mult_pbr(mat4_t * m1, mat4_t * m2, mat4_t * ret);
 void cross_pbr(vect3_t * v_a, vect3_t * v_b, vect3_t * ret);
