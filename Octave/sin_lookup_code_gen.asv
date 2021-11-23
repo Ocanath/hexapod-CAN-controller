@@ -50,18 +50,31 @@ for i = 1:length(theta)
 end
 sth_taylor = double(sth_taylor)/2^15;
 
-err = sth_ctl-sth_lookup;
 figure(1)
 clf
 hold on
-plot(theta,err);
+plot(sth_ctl-sth_lookup);
+% plot(sth_ctl-sth_taylor);
+
+hold off
+
+%%
+figure(1)
+clf
+hold on
+plot(theta,err_q1lt);
+plot(theta,err_q3lt);
+plot(theta,err_avg);    
 % plot(theta_ctl);
 % plot(theta_lookup);
 % plot(theta_taylor);
 hold off
 
+bstmean(abs(err_avg))
+mean(abs(err_q1lt))
+mean(abs(err_q3lt))
 
-
+% e1 = max(err)
 
 %%
 theta_1 = 0:.001:pi/2;
@@ -101,8 +114,9 @@ PI_12B= int32(4096*pi);
 
 theta_scan = 1:1:double(HALF_PI_12B)+1;
 lookup_quadrant1 = int32(2^30*sin( double(theta_scan)/4096 ));    % logistically easier to generate the lookup table every time.
-theta_scan = double(-PI_12B-2):1:double(-HALF_PI_12B2);
-lookup_quadrant3 = int32(2^30* -sin (double(pi+theta_scan)/4096));
+
+theta_scan = (-PI_12B-2  :1:    -HALF_PI_12B-2);
+lookup_quadrant3 = int32(2^30* sin (double(PI_12B+theta_scan)/4096));
 % lookup = (lookup_quadrant1 + lookup_quadrant3)/2;
 lookups = [lookup_quadrant1',lookup_quadrant3'];
 

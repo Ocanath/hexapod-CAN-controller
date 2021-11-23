@@ -2,11 +2,13 @@
 %%
 HALF_PI_12B = int32(4096*pi/2);
 
-
-% theta = 0:1:double(HALF_PI_12B);
-% lookup = int32(2^30*sin( double(theta)/4096 ));
-theta_scan = 1:1:double(HALF_PI_12B)+1;
-lookup = int32(2^30*sin( double(theta_scan)/4096 ));    % logistically easier to generate the lookup table every time.
+theta_scan = double(0+1:1:HALF_PI_12B+1);
+lookup_quadrant1 = (2^30*sin( double(theta_scan)/4096 ));    % this yields max error in quadrants 2 and 3, 0 err in quadrants 1 and 4
+%     theta_scan = double(-PI_12B+1  :1:    -HALF_PI_12B+1);
+%     lookup_quadrant3 = (2^30* sin(theta_scan/4096));    %when used, this yields the same max error as lookup quad 1, except in quadrants 4 and 1 vs 2 and 3
+%     lookup = int32( (lookup_quadrant1-lookup_quadrant3) /2);
+%     lookup = int32(-lookup_quadrant3);
+lookup = int32(lookup_quadrant1);   
 
 fileID = fopen('sin_lookup.c','w');
 fprintf(fileID,"int32_t lookup_sin_30bit[%d] = {\n",length(lookup));
@@ -50,18 +52,31 @@ for i = 1:length(theta)
 end
 sth_taylor = double(sth_taylor)/2^15;
 
-err = sth_ctl-sth_lookup;
 figure(1)
 clf
 hold on
-plot(theta,err);
+plot(sth_ctl-sth_lookup);
+% plot(sth_ctl-sth_taylor);
+
+hold off
+
+%%
+figure(1)
+clf
+hold on
+plot(theta,err_q1lt);
+plot(theta,err_q3lt);
+plot(theta,err_avg);    
 % plot(theta_ctl);
 % plot(theta_lookup);
 % plot(theta_taylor);
 hold off
 
+avg_bst = mean(abs(err_avg))
+avg_q1 = mean(abs(err_q1lt))
+avg_q3 = mean(abs(err_q3lt))
 
-e3 = max(err)
+% e1 = max(err)
 
 %%
 theta_1 = 0:.001:pi/2;

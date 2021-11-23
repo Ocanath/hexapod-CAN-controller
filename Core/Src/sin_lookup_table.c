@@ -10,8 +10,6 @@
  */
 #include "trig_fixed.h"
 
-/*
- * */
 int32_t lookup_sin_30bit[6435] = {
     262144,
     524288,
