@@ -12,7 +12,7 @@ function y = sin_fixed(theta)
     PI                      =   int32(12868);    %int32(3.14159265359*4096);
     TWO_PI                  =   int32(25736);   %int32(6.28318530718*4096);
     
-%     theta = mod(theta+PI,TWO_PI)-PI;
+    theta = mod(theta+PI,TWO_PI)-PI;
     
     % Begin
     is_neg = 0;

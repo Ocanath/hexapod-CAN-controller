@@ -3,7 +3,6 @@ function out = sin_lookup(theta, result_radix)
     
     % defines. 
     HALF_PI_12B                 =   int32(pi/2*2^12);  %int32(1.57079632679*4096);
-    THREE_BY_TWO_PI_12B         =   int32(3*pi/2*2^12);
     PI_12B                      =   int32(pi*2^12);    %int32(3.14159265359*4096);
     TWO_PI_12B                  =   int32(2*pi*2^12);   %int32(6.28318530718*4096);
      

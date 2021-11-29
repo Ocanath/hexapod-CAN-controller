@@ -9,6 +9,8 @@ function y = sin12b_taylor(theta)
     
     ONE_BY_PI_15B               =   int32( (1/pi) * 2^15 );
     
+    theta = mod(theta+PI_12B, TWO_PI_12B) - PI_12B;
+    
     % Begin
     is_neg = 0;
     if(theta > HALF_PI_12B && theta <= PI_12B)	% if positive and in quadrant II, put in quadrant I (same)
@@ -21,11 +23,7 @@ function y = sin12b_taylor(theta)
     elseif (theta < -HALF_PI_12B && theta >= -PI_12B ) % if negative and in quadrant III,
 		is_neg = 1;
 		theta = theta+PI_12B;
-    elseif (theta < 0 && theta >= -HALF_PI_12B) %necessary addition for 4th order asymmetry
-        is_neg = 1;
-        theta = -theta;
-    end
-    
+    end    
     % This stage is where we compute n terms of the taylor series.
     %
     % This is meant to be more accurate while still operating in 32 bit
@@ -69,11 +67,11 @@ function y = sin12b_taylor(theta)
     theta13 = bitshift(theta2*theta11,-15); %max value is 4. usually 0
     
     %this is getting ridiculous. Should do a lookup table. 
-    res = theta*3 - bitshift(theta3*C_N3,-12);
+    res = theta*8 - bitshift(theta3*C_N3,-12);
     res = res + bitshift(theta5*C_N5,-12);
-    res = res + bitshift(theta7*C_N7,-12);
+    res = res - bitshift(theta7*C_N7,-12);
     res = res + bitshift(theta9*C_N9,-12);
-    res = res + bitshift(theta11*C_N11,-12);
+    res = res - bitshift(theta11*C_N11,-12);
     res = res + bitshift(theta13*C_N13,-12);
     
 %     res = bitshift(res,-3); %to convert from 15bit to 12bit

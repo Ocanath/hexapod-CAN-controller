@@ -1,7 +1,7 @@
-function ret = htmatrix_mult(m1, m2)
+function ret = htmatrix_mult_fixed(m1, m2, n)
     assert(isa(m1,'int32')&&isa(m2,'int32'),"Error: inputs must be 32 bit");
     
-    n = 12; % binary decimal place of sin and cos
+%     n = 12; % binary decimal place of sin and cos
     
     ONE_N = int32(2^n);
     ret = [ 

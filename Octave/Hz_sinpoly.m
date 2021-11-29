@@ -1,4 +1,4 @@
-function m = Hz_fixed(angle)
+function m = Hz_sinpoly(angle)
     assert(isa(angle,'int32'), 'Error: input type must be int32');
     ONE_12B = int32(1*4096);
     m = [
