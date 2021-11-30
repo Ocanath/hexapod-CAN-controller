@@ -3,42 +3,116 @@
 %% Eval Accuracy of different methods
 %setup float
 q = [pi/4, pi/4, pi/4];
+q = round(q*4096)/4096;
 hb_0 = [ 
     -1 0 0 109.7858; 
     0 1 0 0; 
     0 0 -1 0;
     0 0 0 1
     ];
+translation_order_n = 12;
+
 d = [65.66,29.00,21.5];
 a = [-53.2, -100.46602344, -198.31677025];
 alpha = [pi/2,pi,0];
 %setup fixed
 q_12b = int32(q*4096);
-translation_order_n = 7;
 hb_0_12b = int32(4096*hb_0);
 hb_0_12b(1:3,4) = int32(hb_0(1:3,4)*2^translation_order_n);
+
 d_fixed = int32(d*2^translation_order_n);
 a_fixed = int32(a*2^translation_order_n);
 alpha12 = int32(alpha*4096);
 
-
-% FK true
+% Calculate Links
 links = dh_to_mat4(d,a,alpha);
-hb_2_TRUE = fk(hb_0,q,links);
-o3_b_true = hb_2_TRUE(1:3,4)
 
-% FK sinpoly
-links_sinpoly = dh_to_mat4_sinpoly(d_fixed,a_fixed,alpha12);
-hb_2_sinpoly = fk_sinpoly(hb_0_12b,q_12b,links_sinpoly);
-o3_b_sinpoly = double(hb_2_sinpoly(1:3,4))/2^translation_order_n
+lowerorder = (translation_order_n - 7);
+d7 = bitshift(d_fixed,-lowerorder);
+a7 = bitshift(a_fixed,-lowerorder);
+links_sinpoly = dh_to_mat4_sinpoly(d7,a7,alpha12);
+hb_0_12brot_7btrans = hb_0_12b;
+hb_0_12brot_7btrans(1:3,4) = bitshift(hb_0_12brot_7btrans(1:3,4),-lowerorder);
 
-% FK lookup
-sin_order = 15;
+sin_order = 29;
 links_lkp = dh_to_mat4_sinlookup(d_fixed,a_fixed,alpha12,sin_order);
 hb_0_nB = hb_0_12b;
 hb_0_nB(1:3,1:3) = hb_0_12b(1:3,1:3)*2^(sin_order-12);
-hb_2_lkp = fk_sinlookup(hb_0_nB,q_12b,links_lkp,sin_order);
-o3_b_lkp = double(hb_2_lkp(1:3,4))/2^translation_order_n
+
+% end calculate links
+
+
+
+oerr = [];
+efpos_true = [];
+efpos_lkp = [];
+efpos_poly = [];
+r = 14;
+for i = -0:0
+    for j = -r:r
+        for k = -r:r
+            q = [i*pi/r,j*pi/r,k*pi/r];
+            q = round(q*4096)/4096;
+            q_12b = int32(q*4096);
+
+            % FK true
+            hb_2_TRUE = fk(hb_0,q,links);
+            o3_b_true = hb_2_TRUE(1:3,4);
+            efpos_true = [efpos_true,o3_b_true];
+            
+%             % FK sinpoly
+            hb_2_sinpoly = fk_sinpoly(hb_0_12brot_7btrans,q_12b,links_sinpoly);
+            o3_b_sinpoly = double(hb_2_sinpoly(1:3,4))/2^7; %sinpoly has fixed translation order 7
+            efpos_poly = [efpos_poly,o3_b_sinpoly];
+
+            % FK lookup
+            hb_2_lkp = fk_sinlookup(hb_0_nB,q_12b,links_lkp,sin_order);
+            o3_b_lkp = double(hb_2_lkp(1:3,4))/2^translation_order_n;
+            efpos_lkp = [efpos_lkp,o3_b_lkp];
+            
+            errlkp = sqrt( sum (abs(o3_b_true - o3_b_lkp)).^2 );
+            oerr = [oerr,errlkp];
+        end
+    end
+end
+figure(1)
+plot(oerr)
+figure(2)
+clf 
+hold on
+plot3(efpos_true(1,:),efpos_true(2,:), efpos_true(3,:));
+plot3(efpos_lkp(1,:),efpos_lkp(2,:), efpos_lkp(3,:));
+plot3(efpos_poly(1,:),efpos_poly(2,:), efpos_poly(3,:));
+hold off
+figure(3)
+clf
+hold on
+err_lkp = (efpos_true - efpos_lkp);
+plot3(err_lkp(1,:),err_lkp(2,:), err_lkp(3,:));
+err_sinpoly = (efpos_true - efpos_poly);
+plot3(err_sinpoly(1,:),err_sinpoly(2,:), err_sinpoly(3,:));
+hold off
+maxmean = [max(oerr), mean(oerr)]
+
+
+%%
+varr = [];
+sumarr = [];
+for i = -10:10
+    for j = -10:10
+        for k = -10:10
+            v = [i j k];
+            norm = sqrt(sum(v.^2));
+            v_norm = v./norm;
+            varr = [varr,v_norm'];
+            sumarr = [sumarr,sum(v_norm)];
+        end
+    end
+end
+figure(1)
+plot3(varr(1,:), varr(2,:), varr(3,:));
+figure(2)
+plot(sumarr);
 
 %% Various sin methods comparison!
 

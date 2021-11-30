@@ -161,6 +161,60 @@ void forward_kinematics(mat4_t * hb_0, joint* f1_joint)
 	}
 }
 
+
+/*
+ * N is the binary radix of the sin and cosine of the joint angle.
+ * max value is 29 (should be 30, but stability not guaranteed)
+ */
+void forward_kinematics_64(mat4_32b_t * hb_0, joint*f1_joint, int n)
+{
+	if(f1_joint == NULL)		//catch null pointer case for now, just to be sure
+		return;
+
+	joint* j = f1_joint;
+	while(j != NULL)
+	{
+		int64_t cth = (int64_t)j->cos_q;
+		int64_t sth = (int64_t)j->sin_q;
+
+		mat4_32b_t* r = &j->h32_link;
+		mat4_32b_t * him1_i = &j->h32_im1_i;	//specify lookup ptr first for faster loading
+
+		int64_t r00 = (int64_t)r->m[0][0];
+		int64_t r01 = (int64_t)r->m[0][1];
+		int64_t r02 = (int64_t)r->m[0][2];
+		int64_t r03 = (int64_t)r->m[0][3];
+		int64_t r10 = (int64_t)r->m[1][0];
+		int64_t r11 = (int64_t)r->m[1][1];
+		int64_t r12 = (int64_t)r->m[1][2];
+		int64_t r13 = (int64_t)r->m[1][3];
+
+		him1_i->m[0][0] = (int32_t)((cth * r00 - r10 * sth) >> n);
+		him1_i->m[0][1] = (int32_t)((cth * r01 - r11 * sth) >> n);
+		him1_i->m[0][2] = (int32_t)((cth * r02 - r12 * sth) >> n);
+		him1_i->m[0][3] = (int32_t)((cth * r03 - r13 * sth) >> n);
+		him1_i->m[1][0] = (int32_t)((cth * r10 + r00 * sth) >> n);
+		him1_i->m[1][1] = (int32_t)((cth * r11 + r01 * sth) >> n);
+		him1_i->m[1][2] = (int32_t)((cth * r12 + r02 * sth) >> n);
+		him1_i->m[1][3] = (int32_t)((cth * r13 + r03 * sth) >> n);
+		him1_i->m[2][0] = r->m[2][0];
+		him1_i->m[2][1] = r->m[2][1];
+		him1_i->m[2][2] = r->m[2][2];
+		him1_i->m[2][3] = r->m[2][3];
+
+		j = j->child;
+	}
+
+	joint * parent = f1_joint;
+	j = f1_joint;
+	ht32_mult64_pbr(hb_0, &j->h32_im1_i, &j->h32_b_i, n);	//load hb_1.		hb_0 * h0_1 = hb_1
+	while (j->child != NULL)
+	{
+		j = j->child;
+		ht32_mult64_pbr(&parent->h32_b_i, &j->h32_im1_i, &j->h32_b_i, n);
+		parent = j;
+	}
+}
 /*
 	Calculates the robot jacobian matrix satisfying the relationship v = J*qdot, where qdot is a vector of generalized joint velocities,
 	and v is the linear velocity of the argument 'point' (expressed in chain frame 0, and rigidly attached to the end effector frame).

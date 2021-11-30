@@ -50,6 +50,45 @@ void ht32_mult_pbr(mat4_32b_t * m1, mat4_32b_t * m2, mat4_32b_t * ret)
 }
 
 /*
+ * Same as normalt mat4 multiplication with pass by pointer,
+ * EXCEPT that it is assummed to be a homogeneous transformation matrix where
+ * the bottom rows of all matrices are equal to 0,0,0,1
+*/
+void ht32_mult64_pbr(mat4_32b_t * m1, mat4_32b_t * m2, mat4_32b_t * ret, int n)
+{
+	int r, c, i;
+	int64_t tmp;
+	/*Do the rotation matrix part FIRST*/
+	for(r = 0; r < 3; r++)
+	{
+		for(c = 0; c < 3; c++)
+		{
+			tmp = 0;
+			for(i = 0; i < 4; i++)
+			{
+				tmp += ( ((int64_t)m1->m[r][i]) * ((int64_t)m2->m[i][c]) );
+			}
+			ret->m[r][c] = (int32_t)(tmp >> n);	//each term has 12bit binary decimal point. Remove the additional terms accumulated AFTER the sum.
+			//the 3x3 portion is safe to do multiple accumulations because each term is 12bit limited (even ignoring constraints imposed by the
+			//conditions required to be a homogeneous transformation matrix, such as column vector orthogonality, unit vector across row and column vectors)
+		}
+	}
+	/*Do the translation part LAST. This part must be handled differently due to relative scaling*/
+	for(int r = 0; r < 4; r++)
+	{
+		tmp = 0;
+		for(int i = 0; i < 4; i++)
+			tmp += ((int64_t)m1->m[r][i]) * ((int64_t)m2->m[i][3]);
+		ret->m[r][3] = (int32_t)(tmp >> n);	//remove the order 12 component
+	}
+
+//	ret->m[3][0] = 0.f;
+//	ret->m[3][1] = 0.f;
+//	ret->m[3][2] = 0.f;
+//	ret->m[3][3] = 1.f;	//commented because this function should be called on matrices where that relationship is assumed to be true
+}
+
+/*
 	Returns vector cross product between 3 vectors A and B. Faster pass by pointer version
 */
 void cross32_pbr(vect3_32b_t * v_a, vect3_32b_t * v_b, vect3_32b_t * ret, int n)

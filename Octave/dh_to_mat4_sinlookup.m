@@ -6,9 +6,7 @@ function links = dh_to_mat4_sinlookup(d,a,alpha, sin_output_order)
     nal = size(alpha,2);
     assert(nd == na & na == nal, 'Error! size mismatch for input arrays');
     n = nd;
-    
-    
-    
+
     ONE_FIXED = int32(1*2^sin_output_order);
     links = cell(1,n);
     for i = 1:n

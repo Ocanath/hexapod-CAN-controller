@@ -214,8 +214,8 @@ void update_joint_from_can_data(can_payload_t * payload, joint * j)
 			j->sin_q_float = ((float)sth)/1073741824.f;
 			j->cos_q_float = ((float)cth)/1073741824.f; //convert 30bit scaled value. 1073741824.f = 2^30
 
-			j->sin_q = sth >> 15;	//constrain sin_q and cos_q radix to 2^15
-			j->cos_q = cth >> 15;
+			j->sin_q = sth >> 1;	//load sin_q and cos_q radix 29, for 64bit multiplication stability
+			j->cos_q = cth >> 1;
 		}
 
 		j->dq_rotor = (float)(j->dq_rotor16) * 0.062500f;	//dividing by 16 expresses velocity in units of rad/sec

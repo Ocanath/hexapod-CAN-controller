@@ -79,5 +79,6 @@ void ht_mat4_mult_pbr(mat4_t * m1, mat4_t * m2, mat4_t * ret);
 
 void ht32_mult_pbr(mat4_32b_t * m1, mat4_32b_t * m2, mat4_32b_t * ret);
 void cross32_pbr(vect3_32b_t * v_a, vect3_32b_t * v_b, vect3_32b_t * ret, int n);
+void ht32_mult64_pbr(mat4_32b_t * m1, mat4_32b_t * m2, mat4_32b_t * ret, int n);
 
 #endif /* INC_VECT_H_ */

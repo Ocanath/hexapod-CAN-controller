@@ -66,7 +66,7 @@ int main(void)
 	SystemClock_Config();
 
 	MX_GPIO_Init();
-	MX_ADC1_Init();
+//	MX_ADC1_Init();
 	HAL_Delay(100);
 	CAN_Init();
 	//	MX_CAN1_Init();

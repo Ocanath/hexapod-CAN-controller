@@ -4,8 +4,8 @@ function m = fk_sinlookup(hb_0, q, links, sin_order)
     n = size(q,2);
     m = hb_0;
     for i = 1:n
-%       m = m*Hz_sinpoly(q(i))*links{i};  
-        tmp = htmatrix_mult_fixed(Hz_sinlookup(q(i),sin_order),links{i}, sin_order);
-        m = htmatrix_mult_fixed(m,tmp, sin_order);
+        tmp = ht_mult_64b(Hz_sinlookup(q(i),sin_order),links{i}, sin_order);
+        m = ht_mult_64b(m,tmp, sin_order);
+%         m = zeros(4,4);
     end
 end

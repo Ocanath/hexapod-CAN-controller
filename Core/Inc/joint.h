@@ -56,6 +56,11 @@ typedef struct joint
 	vect6_t Si;			//vector corresponding to the i'th column of the jacobian matrix. Si*q(i) = vi, where vi is the ith's joint's contribution to the total chain velocity in frame 0
 	struct joint * child;
 
+	//fixedpoint kinematics things
+	mat4_32b_t h32_b_i;
+	mat4_32b_t h32_im1_i;
+	mat4_32b_t h32_link;
+
 	//Delivered to the motor. Velocity or torque.
 	can_payload_t tau;
 
