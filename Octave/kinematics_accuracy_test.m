@@ -1,6 +1,16 @@
-
-
 %% Eval Accuracy of different methods
+
+%Notes.
+% translation order 7 and sin order 12 will 
+% allow about 4meter sphere outside the robot's base frame for 32 bits.
+
+% if 64 bit buffers are used, 12 and 29 can be used for 4km radius outside the
+% robots base frame. The cost is 
+% many 64 bit multiplies and shifts.
+
+translation_order_n = 16;   % the radix which is used to convert mm to fixed point
+sin_order = 21;             % radix used to represent sin-cos(rad12)
+
 %setup float
 q = [pi/4, pi/4, pi/4];
 q = round(q*4096)/4096;
@@ -10,7 +20,6 @@ hb_0 = [
     0 0 -1 0;
     0 0 0 1
     ];
-translation_order_n = 12;
 
 d = [65.66,29.00,21.5];
 a = [-53.2, -100.46602344, -198.31677025];
@@ -34,19 +43,18 @@ links_sinpoly = dh_to_mat4_sinpoly(d7,a7,alpha12);
 hb_0_12brot_7btrans = hb_0_12b;
 hb_0_12brot_7btrans(1:3,4) = bitshift(hb_0_12brot_7btrans(1:3,4),-lowerorder);
 
-sin_order = 29;
 links_lkp = dh_to_mat4_sinlookup(d_fixed,a_fixed,alpha12,sin_order);
 hb_0_nB = hb_0_12b;
 hb_0_nB(1:3,1:3) = hb_0_12b(1:3,1:3)*2^(sin_order-12);
 
+links_tay = dh_to_mat4_sintaylor(d_fixed,a_fixed,alpha12,sin_order);
 % end calculate links
-
-
 
 oerr = [];
 efpos_true = [];
 efpos_lkp = [];
 efpos_poly = [];
+efpos_tay = [];
 r = 14;
 for i = -0:0
     for j = -r:r
@@ -70,29 +78,54 @@ for i = -0:0
             o3_b_lkp = double(hb_2_lkp(1:3,4))/2^translation_order_n;
             efpos_lkp = [efpos_lkp,o3_b_lkp];
             
+            hb_2_tay = fk_taylor(hb_0_nB,q_12b, links_tay, sin_order);
+            o3_b_tay = double(hb_2_tay(1:3,4))/2^translation_order_n;
+            efpos_tay = [efpos_tay,o3_b_tay];
+
             errlkp = sqrt( sum (abs(o3_b_true - o3_b_lkp)).^2 );
             oerr = [oerr,errlkp];
         end
     end
 end
+
 figure(1)
 plot(oerr)
+
+
+
 figure(2)
 clf 
 hold on
 plot3(efpos_true(1,:),efpos_true(2,:), efpos_true(3,:));
 plot3(efpos_lkp(1,:),efpos_lkp(2,:), efpos_lkp(3,:));
 plot3(efpos_poly(1,:),efpos_poly(2,:), efpos_poly(3,:));
+plot3(efpos_tay(1,:),efpos_tay(2,:), efpos_tay(3,:));
+
 hold off
+axis vis3d
+view([-41.3720,22.2014]);
+
+
+
 figure(3)
 clf
 hold on
+
 err_lkp = (efpos_true - efpos_lkp);
 plot3(err_lkp(1,:),err_lkp(2,:), err_lkp(3,:));
+
 err_sinpoly = (efpos_true - efpos_poly);
+err_sinpoly = err_sinpoly / 20;
 plot3(err_sinpoly(1,:),err_sinpoly(2,:), err_sinpoly(3,:));
+
+err_sintay = (efpos_true - efpos_tay);
+plot3(err_sintay(1,:),err_sintay(2,:), err_sintay(3,:));
+
 hold off
 maxmean = [max(oerr), mean(oerr)]
+axis vis3d
+view([8.5178,9.2187]);
+
 
 
 %%
