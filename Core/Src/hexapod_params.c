@@ -7,6 +7,8 @@
 
 
 #include "hexapod_params.h"
+#include "vect.h"
+#include "trig_fixed.h"
 
 
 dynamic_hex_t gl_hex = {0};	//init to null
@@ -26,16 +28,51 @@ static const dh_entry hexleg_dh[] = {
 static const mat4_t hb_0_leg0 =
 {
 	{
-		{1.f,	0,		0,		109.7858f},
+		{-1.f,	0,		0,		109.7858f},
 		{0,		1.f,	0,		0},
-		{0,		0,		1.f,	0},
+		{0,		0,		-1.f,	0},
 		{0,		0,		0,		1.f}
 	}
 };
 
+
+/*Externally generated frame list*/
+static const mat4_32b_t h32_b_0_leg0 = {
+		{
+			{-ONE_ROT, 0, 0, 7194922},
+			{0, ONE_ROT, 0, 0},
+			{0, 0, -ONE_ROT, 0},
+			{0, 0, 0, ONE_ROT}
+		}
+};
+static const mat4_32b_t h32_link1 = {
+    {
+        {ONE_ROT, 0, 0, -3486515},
+        {0, 0, -ONE_ROT, 0},
+        {0, ONE_ROT, 0, 4303094},
+        {0, 0, 0, ONE_ROT}
+    }
+};
+static const mat4_32b_t h32_link2 = {
+    {
+        {ONE_ROT, 0, 0, -6584141},
+        {0, -ONE_ROT, 0, 0},
+        {0, 0, -ONE_ROT, 1900544},
+        {0, 0, 0, ONE_ROT}
+    }
+};
+static const mat4_32b_t h32_link3 = {
+    {
+        {ONE_ROT, 0, 0, -12996888},
+        {0, ONE_ROT, 0, 0},
+        {0, 0, ONE_ROT, 1409024},
+        {0, 0, 0, ONE_ROT}
+    }
+};
+
 void setup_dynamic_hex(dynamic_hex_t * robot)
 {
-
+	int n = KINEMATICS_SIN_ORDER;
 
 	/*Set up the chain singly linked list. We will assume the chain
 	 * is formatted in ascending order, with each triple corresponding
@@ -50,12 +87,18 @@ void setup_dynamic_hex(dynamic_hex_t * robot)
 
 	/*Initialize the hb_0 frame definitions*/
 	const float angle_f = (2 * PI) / 6.f;
+	const int32_t angle_12 = TWO_PI_12B/6;
+
 	for (int leg = 0; leg < NUM_LEGS; leg++)
 	{
-		mat4_t tmp = mat4_t_mult(hb_0_leg0, Hz(PI));
-		tmp = mat4_t_mult(tmp, Hx(PI));
-		tmp = mat4_t_mult( Hz(((float)leg)*angle_f), tmp );
-		copy_mat4_t(&(robot->hb_0[leg]),&tmp);
+		mat4_t* rh_b_0 = &(robot->hb_0[leg]);
+		mat4_32b_t* rh32_b_0 = &(robot->h32_b_0[leg]);
+
+		mat4_t zrot = Hz(leg*angle_f);
+		mat4_32b_t z32_rot = Hz_nb(leg*angle_12, n);
+
+		mat4_t_mult_pbr(&zrot, (mat4_t*)(&hb_0_leg0),rh_b_0);
+		ht32_mult64_pbr(&z32_rot, (mat4_32b_t*)(&h32_b_0_leg0), rh32_b_0, n);
 	}
 
 	/**/
@@ -67,14 +110,17 @@ void setup_dynamic_hex(dynamic_hex_t * robot)
 			if(j->frame == 1)
 			{
 				dh_to_mat4(&j->h_link, (dh_entry*)&hexleg_dh[0]);
+				m_mcpy(&j->h32_link,(void*)(&h32_link1),sizeof(mat4_32b_t));
 			}
 			else if (j->frame == 2)
 			{
 				dh_to_mat4(&j->h_link, (dh_entry*)&hexleg_dh[1]);
+				m_mcpy(&j->h32_link,(void*)(&h32_link2),sizeof(mat4_32b_t));
 			}
 			else if (j->frame == 3)
 			{
 				dh_to_mat4(&j->h_link, (dh_entry*)&hexleg_dh[2]);
+				m_mcpy(&j->h32_link,(void*)(&h32_link3),sizeof(mat4_32b_t));
 			}
 			j = j->child;
 		}

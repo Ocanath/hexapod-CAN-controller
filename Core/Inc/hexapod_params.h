@@ -13,6 +13,7 @@
 
 typedef struct dynamic_hex_t
 {
+	mat4_32b_t h32_b_0[NUM_LEGS];
 	mat4_t hb_0[NUM_LEGS];
 	joint * p_joint[NUM_LEGS];
 }dynamic_hex_t;

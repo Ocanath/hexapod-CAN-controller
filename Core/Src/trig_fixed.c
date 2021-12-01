@@ -23,6 +23,17 @@ static const int32_t tc4 = 4112;    //2^12
 static const int32_t tc5 = -1*4096;    //2^12, with extra scaling factor applied for speed
 
 /*
+ * Taylor series coefficients for high precision low memory use sin-cos
+ * These are 64bit to save compute time (no casting on each)*/
+static const int64_t c_n3 = 11097578693;
+static const int64_t c_n5 = 5476435575;
+static const int64_t c_n7 = 1286910778;
+static const int64_t c_n9 = 176406948;
+static const int64_t c_n11 = 15827880;
+static const int64_t one_by_pi_31b = 683565276;
+static const int64_t two_to_the_50th = 1125899906842624;	//(1 << 50)
+
+/*
 *   Input:
         theta. MUST BE EXTERNALLY CONSTRAINED TO BE BETWEEN -PI_12B and PI_2B
     OUTPUT:
@@ -202,4 +213,65 @@ int64_t wrap_2pi12b_64(int64_t in)
         return TWO_PI_12B + result;
     else
         return result;
+}
+
+/*
+ * High accuracy, fast as possible with 64 bit, nearly as accurate as lookup but
+ * with substantially reduced MEMORY overhead.
+ *
+ * If you need a very accurate sine-cosine:
+ * 		1. If you can spare 6435 int32's (25740 bytes of memory), use the lookup table. It is extremely fast and produces exact results
+ * 		2. If you can't, use this. It (much) slower, but consumes far less memory and has similar accuracy and precision
+ * */
+int64_t sin62b(int32_t theta)	//returns a -2^30 to 2^30range sin of the input angle, which is -4096*pi t0 4096*pi
+{
+	theta = wrap_2pi_12b(theta);	//initial bounding performed with modulo
+
+    uint8_t is_neg = 0;
+    if(theta > HALF_PI_12B && theta <= PI_12B)	// if positive and in quadrant II, put in quadrant I (same)
+    {
+    	theta = PI_12B - theta;
+    }
+    else if (theta >= PI_12B && theta < THREE_BY_TWO_PI_12B)
+    {
+        is_neg = 1;
+        theta = theta - PI_12B;
+    }
+    else if (theta > THREE_BY_TWO_PI_12B && theta < TWO_PI_12B)
+    {
+        theta = theta - TWO_PI_12B;
+    }
+    else if(theta < -HALF_PI_12B && theta >= -PI_12B ) // if negative and in quadrant III,
+    {
+		is_neg = 1;
+		theta = theta+PI_12B;
+	}
+    int64_t theta64 = (int64_t)theta;
+    int64_t theta_31b_norm = (theta64*one_by_pi_31b) >> 12;
+    int64_t theta2 = (theta_31b_norm*theta_31b_norm) >> 31;
+    int64_t theta3 = (theta2*theta_31b_norm) >> 31;
+    int64_t theta5 = (theta2*theta3) >> 31;
+    int64_t theta7 = (theta2*theta5) >> 31;
+    int64_t theta9 = (theta2*theta7) >> 31;
+    int64_t theta11 = (theta2*theta9) >> 31;
+
+    //uint8_t lshift = 32; //30-(31+31)	//produce 30bit resolution output value
+    int64_t res = theta64*two_to_the_50th - theta3*c_n3;	//could do a right shift, because theta64 is constrained to be only positive. this removes a warning though
+    res += theta5*c_n5;
+    res -= theta7*c_n7;
+    res += theta9*c_n9;
+    res -= theta11*c_n11;
+
+    if(is_neg)
+    	return -res;
+    else
+    	return res;
+}
+
+/*
+ *	wrapper for sin taylor
+ * */
+int64_t cos64b(int32_t theta)
+{
+    return sin_12b(theta + HALF_PI_12B);
 }

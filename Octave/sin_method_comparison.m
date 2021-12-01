@@ -4,19 +4,18 @@ theta = -pi:.001:pi;
 theta = round(theta*4096)/4096;
 theta12 = int32(theta*4096);
 
-
 s_lk = int32(zeros(1,length(theta12)));
-s_tay64 = int32(zeros(1,length(theta12)));
+s_tay64 = int64(zeros(1,length(theta12)));
 s_tay32 = int32(zeros(1,length(theta12)));
 for i = 1:length(theta12)
     s_lk(i) = sin_lookup(theta12(i),30);
-    s_tay64(i) = sin_Nb64_taylor(theta12(i),30);
+    s_tay64(i) = sin_Nb64_taylor(theta12(i),62);
     s_tay32(i) = sin_Nb_taylor(theta12(i),30);
 end
 
 s_ctl = sin(theta);
 s_lk = double(s_lk)/2^30;
-s_tay64 = double(s_tay64)/2^30;
+s_tay64 = double(s_tay64)/2^62;
 s_tay32 = double(s_tay32)/2^30;
 
 figure(2)
@@ -42,3 +41,7 @@ hold off
 
 % max(abs(err_lk-err_tay))
 maxlk_tay = [max(abs(err_lk)) max(abs(err_tay64))]
+
+%%
+
+round(sin(theta(round(end/3)))*2^30)/2^30 - double(sin_Nb64_taylor(theta12(round(end/3)),62))/2^62

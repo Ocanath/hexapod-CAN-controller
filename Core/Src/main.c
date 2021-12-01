@@ -82,6 +82,25 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 
 	setup_dynamic_hex(&gl_hex);		//setup the structure to do forward kinematics
+	gl_hex.p_joint[0]->q16 = PI_12B/4;
+	gl_hex.p_joint[0]->child->q16 = PI_12B/4;
+	gl_hex.p_joint[0]->child->child->q16 = PI_12B/4;
+	joint * j = gl_hex.p_joint[0];
+	while(j != NULL)
+	{
+		int32_t sth = sin_lookup(j->q16,30);
+		int32_t cth = cos_lookup(j->q16,30);
+
+		j->sin_q_float = ((float)sth)/1073741824.f;
+		j->cos_q_float = ((float)cth)/1073741824.f;
+
+		j->sin_q = sth >> 1;
+		j->cos_q = cth >> 1;
+
+		j = j->child;
+	}
+	forward_kinematics(&gl_hex.hb_0[0], gl_hex.p_joint[0]);
+	//forward_kinematics_64(&gl_hex.h32_b_0[0],gl_hex.p_joint[0],29);
 
 	uint32_t start_ts = HAL_GetTick();
 	for(uint32_t exp_ts = start_ts + 3000; HAL_GetTick() < exp_ts;)
@@ -125,6 +144,8 @@ int main(void)
 	j32->ctl.kd = 0.20f/3.f;
 	j32->ctl.tau_sat = 0.85f;
 
+	j32->sin_q = sin_lookup(400,30);
+	j32->cos_q = (int32_t)(sin62b(400)>>32);
 	while(1)
 	{
 

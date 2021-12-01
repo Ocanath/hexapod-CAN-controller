@@ -7,19 +7,19 @@
 #include "kinematics.h"
 #include "sin-math.h"
 
-/*
-	Copies the contents of one mat4_t to the other. could use memcpy interchangably
-*/
-void copy_mat4_t(mat4_t * dest, mat4_t * src)
-{
-	for (int r = 0; r < 4; r++)
-	{
-		for (int c = 0; c < 4; c++)
-		{
-			dest->m[r][c] = src->m[r][c];
-		}
-	}
-}
+///*
+//	Copies the contents of one mat4_t to the other. could use memcpy interchangably
+//*/
+//void copy_mat4_t(mat4_t * dest, mat4_t * src)
+//{
+//	for (int r = 0; r < 4; r++)
+//	{
+//		for (int c = 0; c < 4; c++)
+//		{
+//			dest->m[r][c] = src->m[r][c];
+//		}
+//	}
+//}
 
 void rpy_to_mat4(mat4_t * m, vect3 rpy, vect3 xyz)
 {
@@ -28,7 +28,7 @@ void rpy_to_mat4(mat4_t * m, vect3 rpy, vect3 xyz)
 	tmp = mat4_t_mult(tmp, Hz(rpy[0]));
 	for(int r = 0; r < 3; r++)
 		tmp.m[r][3] = xyz[r];
-	copy_mat4_t(m, &tmp);
+	m_mcpy(m, &tmp,sizeof(mat4_t));
 }
 
 void dh_to_mat4(mat4_t * m, dh_entry * dh)
@@ -43,8 +43,9 @@ void dh_to_mat4(mat4_t * m, dh_entry * dh)
 			{0,		0,				0,				1}
 		}
 	};
-	copy_mat4_t(m, &tmp);
+	m_mcpy(m, &tmp,sizeof(mat4_t));
 }
+
 
 /*
 *	Initialize links with urdf-style inputs (xyz and roll pitch yaw)
@@ -58,11 +59,11 @@ void init_forward_kinematics_urdf(joint* j, vect3_t * xyz, vect3_t * rpy, int nu
 		Hlink = mat4_t_mult(Hlink, Hx(rpy[i].v[0]));	//obtained Hrpy
 		for(int r = 0; r < 3; r++)
 			Hlink.m[r][3] = xyz[i].v[r];
-		copy_mat4_t(&j[i].h_link, &Hlink);	//load result into joint matrix
-		copy_mat4_t(&j[i].him1_i, &j[i].h_link);	//initial q=0 loading for him1_i
+		m_mcpy(&j[i].h_link, &Hlink,sizeof(mat4_t));	//load result into joint matrix
+		m_mcpy(&j[i].him1_i, &j[i].h_link,sizeof(mat4_t));	//initial q=0 loading for him1_i
 		j[i - 1].child = &j[i];	//load child reference in case we want to traverse this as a singly linked list
 	}
-	copy_mat4_t(&j[0].h_link, &j[0].hb_i);
+	m_mcpy(&j[0].h_link, &j[0].hb_i,sizeof(mat4_t));
 	j[0].q = 0;
 	j[num_joints].child = NULL;
 	for (int i = 1; i <= num_joints; i++)
@@ -93,10 +94,10 @@ void init_forward_kinematics_dh(joint* j, const dh_entry* dh, int num_joints)
 				{0,		0,				0,				1}
 			}
 		};
-		copy_mat4_t(&j[i].him1_i, &j[i].h_link);	//htheta of 0 is the identity
+		m_mcpy(&j[i].him1_i, &j[i].h_link,sizeof(mat4_t));	//htheta of 0 is the identity
 		j[i - 1].child = &j[i];
 	}
-	copy_mat4_t(&j[0].h_link, &j[0].hb_i);
+	m_mcpy(&j[0].h_link, &j[0].hb_i,sizeof(mat4_t));
 	j[0].q = 0;
 	j[num_joints].child = NULL;	//initialize the last node in the linked list to NULL
 	for (int i = 1; i <= num_joints; i++)
@@ -161,60 +162,6 @@ void forward_kinematics(mat4_t * hb_0, joint* f1_joint)
 	}
 }
 
-
-/*
- * N is the binary radix of the sin and cosine of the joint angle.
- * max value is 29 (should be 30, but stability not guaranteed)
- */
-void forward_kinematics_64(mat4_32b_t * hb_0, joint*f1_joint, int n)
-{
-	if(f1_joint == NULL)		//catch null pointer case for now, just to be sure
-		return;
-
-	joint* j = f1_joint;
-	while(j != NULL)
-	{
-		int64_t cth = (int64_t)j->cos_q;
-		int64_t sth = (int64_t)j->sin_q;
-
-		mat4_32b_t* r = &j->h32_link;
-		mat4_32b_t * him1_i = &j->h32_im1_i;	//specify lookup ptr first for faster loading
-
-		int64_t r00 = (int64_t)r->m[0][0];
-		int64_t r01 = (int64_t)r->m[0][1];
-		int64_t r02 = (int64_t)r->m[0][2];
-		int64_t r03 = (int64_t)r->m[0][3];
-		int64_t r10 = (int64_t)r->m[1][0];
-		int64_t r11 = (int64_t)r->m[1][1];
-		int64_t r12 = (int64_t)r->m[1][2];
-		int64_t r13 = (int64_t)r->m[1][3];
-
-		him1_i->m[0][0] = (int32_t)((cth * r00 - r10 * sth) >> n);
-		him1_i->m[0][1] = (int32_t)((cth * r01 - r11 * sth) >> n);
-		him1_i->m[0][2] = (int32_t)((cth * r02 - r12 * sth) >> n);
-		him1_i->m[0][3] = (int32_t)((cth * r03 - r13 * sth) >> n);
-		him1_i->m[1][0] = (int32_t)((cth * r10 + r00 * sth) >> n);
-		him1_i->m[1][1] = (int32_t)((cth * r11 + r01 * sth) >> n);
-		him1_i->m[1][2] = (int32_t)((cth * r12 + r02 * sth) >> n);
-		him1_i->m[1][3] = (int32_t)((cth * r13 + r03 * sth) >> n);
-		him1_i->m[2][0] = r->m[2][0];
-		him1_i->m[2][1] = r->m[2][1];
-		him1_i->m[2][2] = r->m[2][2];
-		him1_i->m[2][3] = r->m[2][3];
-
-		j = j->child;
-	}
-
-	joint * parent = f1_joint;
-	j = f1_joint;
-	ht32_mult64_pbr(hb_0, &j->h32_im1_i, &j->h32_b_i, n);	//load hb_1.		hb_0 * h0_1 = hb_1
-	while (j->child != NULL)
-	{
-		j = j->child;
-		ht32_mult64_pbr(&parent->h32_b_i, &j->h32_im1_i, &j->h32_b_i, n);
-		parent = j;
-	}
-}
 /*
 	Calculates the robot jacobian matrix satisfying the relationship v = J*qdot, where qdot is a vector of generalized joint velocities,
 	and v is the linear velocity of the argument 'point' (expressed in chain frame 0, and rigidly attached to the end effector frame).

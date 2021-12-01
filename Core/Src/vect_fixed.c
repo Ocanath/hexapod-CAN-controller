@@ -100,10 +100,10 @@ void cross32_pbr(vect3_32b_t * v_a, vect3_32b_t * v_b, vect3_32b_t * ret, int n)
 
 
 /*Loads rotation about coordinate. 0 = identity*/
-mat4_32b_t Hz_12b(int32_t angle)
+mat4_32b_t Hz_nb(int32_t angle, int n)
 {
-	int32_t cth = cos_12b(angle);
-	int32_t sth = sin_12b(angle);
+	int32_t cth = cos_lookup(angle,n);
+	int32_t sth = sin_lookup(angle,n);
 	mat4_32b_t r;
 	r.m[0][0] = cth;		r.m[0][1] = -sth;		r.m[0][2] = 0;			r.m[0][3] = 0;
 	r.m[1][0] = sth;		r.m[1][1] = cth;		r.m[1][2] = 0;			r.m[1][3] = 0;
@@ -113,10 +113,10 @@ mat4_32b_t Hz_12b(int32_t angle)
 }
 
 /*returns homogeneous transform mat4_t matrix which is the rotation 'analge' around the x axis */
-mat4_32b_t Hx_12b(int32_t angle)
+mat4_32b_t Hx_nb(int32_t angle, int n)
 {
-	int32_t cth = cos_12b(angle);
-	int32_t sth = sin_12b(angle);
+	int32_t cth = cos_lookup(angle,n);
+	int32_t sth = sin_lookup(angle,n);
 
 	mat4_32b_t ret;
 	ret.m[0][0] = ONE_12B;	ret.m[0][1] = 0;	ret.m[0][2] = 0;		ret.m[0][3] = 0;
@@ -127,10 +127,10 @@ mat4_32b_t Hx_12b(int32_t angle)
 }
 
 /*Returns rotation about coordinate. 0 = identity*/
-mat4_32b_t Hy_12b(int32_t angle)
+mat4_32b_t Hy_nb(int32_t angle, int n)
 {
-	int32_t cth = cos_12b(angle);
-	int32_t sth = sin_12b(angle);
+	int32_t cth = cos_lookup(angle,n);
+	int32_t sth = sin_lookup(angle,n);
 
 	mat4_32b_t ret;
 	ret.m[0][0] = cth;		ret.m[0][1] = 0;		ret.m[0][2] = sth;		ret.m[0][3] = 0;

@@ -206,10 +206,9 @@ void update_joint_from_can_data(can_payload_t * payload, joint * j)
 
 
 		{	//precompute sin and cos theta for kinematics here.	 TODO: benchmark the two options
-			int32_t q32wrapped = wrap_2pi_12b( (int32_t)j->q16 );
 
-			int32_t sth = sin_lookup(q32wrapped, 30);
-			int32_t cth = cos_lookup(q32wrapped, 30);
+			int32_t sth = sin_lookup(j->q16, 30);
+			int32_t cth = cos_lookup(j->q16, 30);
 
 			j->sin_q_float = ((float)sth)/1073741824.f;
 			j->cos_q_float = ((float)cth)/1073741824.f; //convert 30bit scaled value. 1073741824.f = 2^30

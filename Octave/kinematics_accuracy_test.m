@@ -55,11 +55,15 @@ efpos_true = [];
 efpos_lkp = [];
 efpos_poly = [];
 efpos_tay = [];
-r = 14;
+efpos_single = [];
+r = 10;
+div = r;
 for i = -0:0
     for j = -r:r
         for k = -r:r
-            q = [i*pi/r,j*pi/r,k*pi/r];
+            q = [i*pi/div,j*pi/div,k*pi/div];
+%             q = [j*pi/r,0,k*pi/r];
+%             q = [j*pi/r,k*pi/r,0];
             q = round(q*4096)/4096;
             q_12b = int32(q*4096);
 
@@ -67,6 +71,9 @@ for i = -0:0
             hb_2_TRUE = fk(hb_0,q,links);
             o3_b_true = hb_2_TRUE(1:3,4);
             efpos_true = [efpos_true,o3_b_true];
+            
+            hb_2_single = fk_single(hb_0,q,links);
+            efpos_single = [efpos_single,hb_2_single(1:3,4)];
             
 %             % FK sinpoly
             hb_2_sinpoly = fk_sinpoly(hb_0_12brot_7btrans,q_12b,links_sinpoly);
@@ -100,7 +107,7 @@ plot3(efpos_true(1,:),efpos_true(2,:), efpos_true(3,:));
 plot3(efpos_lkp(1,:),efpos_lkp(2,:), efpos_lkp(3,:));
 plot3(efpos_poly(1,:),efpos_poly(2,:), efpos_poly(3,:));
 plot3(efpos_tay(1,:),efpos_tay(2,:), efpos_tay(3,:));
-
+plot3(efpos_single(1,:),efpos_single(2,:), efpos_single(3,:));
 hold off
 axis vis3d
 view([-41.3720,22.2014]);
@@ -120,6 +127,9 @@ plot3(err_sinpoly(1,:),err_sinpoly(2,:), err_sinpoly(3,:));
 
 err_sintay = (efpos_true - efpos_tay);
 plot3(err_sintay(1,:),err_sintay(2,:), err_sintay(3,:));
+
+err_single = (efpos_true - efpos_single);
+plot3(err_single(1,:),err_single(2,:), err_single(3,:));
 
 hold off
 maxmean = [max(oerr), mean(oerr)]
@@ -184,4 +194,3 @@ plot(sth_ctl-sth_lookup);
 plot(sth_ctl-sth_taylor);
 plot(sth_ctl - sth_poly);
 hold off
-

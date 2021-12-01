@@ -27,6 +27,8 @@ int32_t cos_12b(int32_t theta);
 int32_t sin_lookup(int32_t theta, int result_order);
 int32_t cos_lookup(int32_t theta, int result_order);
 int32_t wrap_2pi_12b(int32_t in);
+int64_t cos64b(int32_t theta);
+int64_t sin62b(int32_t theta);
 
 #endif // ! TRIG_FIXED_H
 

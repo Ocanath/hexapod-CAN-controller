@@ -2,6 +2,12 @@
 #define KINEMATICS_H
 
 #include "joint.h"
+#include "m_mcpy.h"
+
+#define KINEMATICS_SIN_ORDER 			21
+#define KINEMATICS_TRANSLATION_ORDER 	16
+
+#define ONE_ROT					(1 << KINEMATICS_SIN_ORDER)
 
 typedef struct dh_entry
 {
@@ -27,7 +33,6 @@ void init_forward_kinematics_urdf(joint* j, vect3_t* xyz, vect3_t* rpy, int num_
 void init_forward_kinematics_dh(joint* j, const dh_entry* dh, int num_joints);
 void forward_kinematics(mat4_t * hb_0, joint* f1_joint);
 void calc_J_point(joint* j, int num_joints, vect3_t point);
-void copy_mat4_t(mat4_t* dest, mat4_t* src);
 vect6_t calc_w_v(joint * chain, vect3_t * w, vect3_t * v);
 void htmatrix_vect3_mult(mat4_t* m, vect3_t* v, vect3_t* ret);
 vect3_t h_origin(mat4_t h);

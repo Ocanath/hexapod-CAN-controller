@@ -83,7 +83,8 @@ function y = sin_Nb64_taylor(theta, nout)
 %     res = res + bitshift(theta17*C_N17, lshift);
 %     res = res - bitshift(theta19*C_N19, lshift);
     
-    res = int32(res);   %restrict 30 bit
+%     res = int32(res);   %restrict 30 bit
+
     if(is_neg == 1)
 		y = -res;
 	else
