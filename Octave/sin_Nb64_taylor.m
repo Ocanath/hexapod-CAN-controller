@@ -65,7 +65,7 @@ function y = sin_Nb64_taylor(theta, nout)
     theta5 = bitshift(theta2*theta3,-31);
     theta7 = bitshift(theta2*theta5,-31);
     theta9 = bitshift(theta2*theta7,-31);
-%     theta11 = bitshift(theta2*theta9,-31);  %max value 16. ususally 0
+    theta11 = bitshift(theta2*theta9,-31);  %max value 16. ususally 0
 %     theta13 = bitshift(theta2*theta11,-31); %max value is 4. usually 0
 %     theta15 = bitshift(theta2*theta13,-31); %max value is 4. must be 0 like feraking alwasy
 %     theta17 = bitshift(theta2*theta15,-31); %max value is 4. must be 0 like feraking alwasy
@@ -77,7 +77,7 @@ function y = sin_Nb64_taylor(theta, nout)
     res = res + bitshift(theta5*C_N5, lshift);
     res = res - bitshift(theta7*C_N7, lshift);
     res = res + bitshift(theta9*C_N9, lshift);
-%     res = res - bitshift(theta11*C_N11, lshift);
+    res = res - bitshift(theta11*C_N11, lshift);
 %     res = res + bitshift(theta13*C_N13, lshift);
 %     res = res - bitshift(theta15*C_N15, lshift);
 %     res = res + bitshift(theta17*C_N17, lshift);
@@ -89,4 +89,7 @@ function y = sin_Nb64_taylor(theta, nout)
 	else
 		y = res;
     end    
+    
+    %for kinematics, on the dh_hex, there is no tangible benefit to any
+    %order beyond 11
 end

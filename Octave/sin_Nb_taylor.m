@@ -51,7 +51,7 @@ function y = sin_Nb_taylor(theta, nout)
     C_N5 = int32( (pi)^5/factorial(5)*2^ncoef);
     C_N7 = int32( (pi)^7/factorial(7)*2^ncoef);
     C_N9 = int32( (pi)^9/factorial(9)*2^ncoef);
-%     C_N11 = int32( (pi)^11/factorial(11)*2^ncoef);
+    C_N11 = int32( (pi)^11/factorial(11)*2^ncoef);
 %     C_N13 = int32( (pi)^13/factorial(13)*2^ncoef);
 %     C_N15 = int32( (pi)^15/factorial(15)*2^ncoef);  %1. decays to 0 after this term
     
@@ -64,7 +64,7 @@ function y = sin_Nb_taylor(theta, nout)
     theta5 = bitshift(theta2*theta3,-15);
     theta7 = bitshift(theta2*theta5,-15);
     theta9 = bitshift(theta2*theta7,-15);
-%     theta11 = bitshift(theta2*theta9,-15);  %max value 16. ususally 0
+    theta11 = bitshift(theta2*theta9,-15);  %max value 16. ususally 0
 %     theta13 = bitshift(theta2*theta11,-15); %max value is 4. usually 0
 %     theta15 = bitshift(theta2*theta13,-15); %max value is 4. must be 0 like feraking alwasy
     
@@ -74,7 +74,7 @@ function y = sin_Nb_taylor(theta, nout)
     res = res + bitshift(theta5*C_N5, lshift);
     res = res - bitshift(theta7*C_N7, lshift);
     res = res + bitshift(theta9*C_N9, lshift);
-%     res = res - bitshift(theta11*C_N11, lshift);
+    res = res - bitshift(theta11*C_N11, lshift);
 %     res = res + bitshift(theta13*C_N13, lshift);
 %     res = res - bitshift(theta15*C_N15, lshift);
     
