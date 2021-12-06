@@ -82,24 +82,24 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 
 	setup_dynamic_hex(&gl_hex);		//setup the structure to do forward kinematics
-	gl_hex.p_joint[0]->q16 = PI_12B/4;
-	gl_hex.p_joint[0]->child->q16 = PI_12B/4;
-	gl_hex.p_joint[0]->child->child->q16 = PI_12B/4;
-	joint * j = gl_hex.p_joint[0];
-	while(j != NULL)
-	{
-		int32_t sth = sin_lookup(j->q16,30);
-		int32_t cth = cos_lookup(j->q16,30);
-
-		j->sin_q_float = ((float)sth)/1073741824.f;
-		j->cos_q_float = ((float)cth)/1073741824.f;
-
-		j->sin_q = sth >> 1;
-		j->cos_q = cth >> 1;
-
-		j = j->child;
-	}
-	forward_kinematics(&gl_hex.hb_0[0], gl_hex.p_joint[0]);
+//	gl_hex.p_joint[0]->q16 = PI_12B/4;
+//	gl_hex.p_joint[0]->child->q16 = PI_12B/4;
+//	gl_hex.p_joint[0]->child->child->q16 = PI_12B/4;
+//	joint * j = gl_hex.p_joint[0];
+//	while(j != NULL)
+//	{
+//		int32_t sth = sin_lookup(j->q16,30);
+//		int32_t cth = cos_lookup(j->q16,30);
+//
+//		j->sin_q_float = ((float)sth)/1073741824.f;
+//		j->cos_q_float = ((float)cth)/1073741824.f;
+//
+//		j->sin_q = sth >> 1;
+//		j->cos_q = cth >> 1;
+//
+//		j = j->child;
+//	}
+//	forward_kinematics(&gl_hex.hb_0[0], gl_hex.p_joint[0]);
 	//forward_kinematics_64(&gl_hex.h32_b_0[0],gl_hex.p_joint[0],29);
 
 	uint32_t start_ts = HAL_GetTick();
@@ -136,16 +136,16 @@ int main(void)
 	uint32_t disp_ts = HAL_GetTick()+15;
 //	can_network_keyboard_discovery();
 
-	joint * j32 = joint_with_id(32,chain,NUM_JOINTS);
-	j32->ctl.kp = 9.0f;
-	j32->ctl.ki_div = 377.f;
-	j32->ctl.x_pi = 0.f;
-	j32->ctl.x_sat = 1.5f;
-	j32->ctl.kd = 0.20f/3.f;
-	j32->ctl.tau_sat = 0.85f;
-
-	j32->sin_q = sin_lookup(400,30);
-	j32->cos_q = (int32_t)(sin62b(400)>>32);
+//	joint * j32 = joint_with_id(32,chain,NUM_JOINTS);
+//	j32->ctl.kp = 9.0f;
+//	j32->ctl.ki_div = 377.f;
+//	j32->ctl.x_pi = 0.f;
+//	j32->ctl.x_sat = 1.5f;
+//	j32->ctl.kd = 0.20f/3.f;
+//	j32->ctl.tau_sat = 0.85f;
+//
+//	j32->sin_q = sin_lookup(400,30);
+//	j32->cos_q = (int32_t)(sin62b(400)>>32);
 	while(1)
 	{
 
@@ -161,15 +161,15 @@ int main(void)
 		float t = ((float)HAL_GetTick())*.001f;
 
 //		j32->qd = 1.5f*sin_fast(t);
-		j32->qd = 2.0f;
+//		j32->qd = 2.0f;
 
-		float dqout_from_rotor = (j32->dq_rotor*-0.0625f);	//convert rotor speed to gearbox speed in rad/s. Sign flip from mechanism
+//		float dqout_from_rotor = (j32->dq_rotor*-0.0625f);	//convert rotor speed to gearbox speed in rad/s. Sign flip from mechanism
 
-  		float err = wrap(j32->qd - j32->q);
-		float u = ctl_PI(err, &j32->ctl);
-		u -= j32->ctl.kd*dqout_from_rotor;//if we use rotor as damping instead of output velocity estimate, much lower noise (and higher damping as a result) is possible
+//  		float err = wrap(j32->qd - j32->q);
+//		float u = ctl_PI(err, &j32->ctl);
+//		u -= j32->ctl.kd*dqout_from_rotor;//if we use rotor as damping instead of output velocity estimate, much lower noise (and higher damping as a result) is possible
 
-		j32->tau.i16[0] = (int16_t)(-4096.f*u);
+//		j32->tau.i16[0] = (int16_t)(-4096.f*u);
 
 
 
@@ -250,14 +250,23 @@ int main(void)
 
 			floatsend_t fmt;
 			int bidx = 0;
-			uint8_t buf[2*sizeof(float)];
+			uint8_t buf[NUM_JOINTS*sizeof(float)];
 
-			fmt.v = chain[0].q;
-			buffer_data(fmt.d, sizeof(float), buf, &bidx);
-			fmt.v = chain[0].qd;
-			buffer_data(fmt.d, sizeof(float), buf, &bidx);
 
-			HAL_UART_Transmit_IT(&huart2,buf,2*sizeof(float));
+
+			for(int i = 0; i < NUM_JOINTS; i++)
+			{
+				fmt.v = chain[i].q;
+				buffer_data(fmt.d, sizeof(float),buf,&bidx);
+			}
+//			fmt.v = chain[0].q;
+//			buffer_data(fmt.d, sizeof(float), buf, &bidx);
+//			fmt.v = chain[0].qd;
+//			buffer_data(fmt.d, sizeof(float), buf, &bidx);
+
+
+
+			HAL_UART_Transmit_IT(&huart2,buf,NUM_JOINTS*sizeof(float));
 		}
 
 	}
@@ -348,9 +357,9 @@ void blink_motors_in_chain(void)
 
 		led_idx = (led_idx + 1) % (NUM_JOINTS+1);
 		if(led_idx == NUM_JOINTS)
-			can_tx_ts = HAL_GetTick()+1000;
+			can_tx_ts = HAL_GetTick()+700;
 		else
-			can_tx_ts = HAL_GetTick()+75;
+			can_tx_ts = HAL_GetTick()+500;
 
 		if(led_idx < NUM_JOINTS)
 		{
