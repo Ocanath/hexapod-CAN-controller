@@ -21,11 +21,14 @@ while(ishandle(H))
 
         for i = 1:num_lines
             v = double(data(i));
-            fprintf("%f, ",v);
+            if(type == "single" || type == "double")
+                fprintf("%f, ",v);
+            else
+                fprintf("%d, ",v);
+            end
         end
         fprintf("\n");
     end
-    
 end
 
 clear s;
