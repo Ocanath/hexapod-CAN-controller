@@ -1,6 +1,0 @@
-function m = rpy_to_mat4(rpy, xyz)
-    
-    tmp = Hz(rpy(3));
-    tmp = tmp*
-
-end

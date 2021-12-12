@@ -13,7 +13,7 @@ sin_order = 21;             % radix used to represent sin-cos(rad12)
 
 %setup float
 q = [pi/4, pi/4, pi/4];
-q = round(q*4096)/4096;
+q = floor(q*4096)/4096;
 hb_0 = [ 
     -1 0 0 109.7858; 
     0 1 0 0; 
@@ -53,23 +53,34 @@ links_tay = dh_to_mat4_sintaylor(d_fixed,a_fixed,alpha12,sin_order);
 oerr = [];
 efpos_true = [];
 efpos_lkp = [];
+efpos_lkp_fixed = [];
 efpos_poly = [];
 efpos_tay = [];
 efpos_single = [];
+qlist = [];
 r = 10;
 div = r;
+listelem = 1;
 for i = -0:0
     for j = -r:r
         for k = -r:r
-            q = [i*pi/div,j*pi/div,k*pi/div];
-%             q = [j*pi/r,0,k*pi/r];
-%             q = [j*pi/r,k*pi/r,0];
-            q = round(q*4096)/4096;
-            q_12b = int32(q*4096);
 
+            q_12b = int32(sweepq(listelem,:));
+            listelem = listelem + 1;
+            qlist = [qlist,q_12b'];
+            
+            q = double(q_12b)/4096;
+%             q = [i*pi/div,j*pi/div,k*pi/div];
+% %             q = [j*pi/r,0,k*pi/r];
+% %             q = [j*pi/r,k*pi/r,0];
+%             q = floor(q*4096)/4096;
+%             q_12b = int32(q*4096);
+
+
+            
             % FK true
             hb_2_TRUE = fk(hb_0,q,links);
-            o3_b_true = hb_2_TRUE(1:3,4);
+            o3_b_true = hb_2_TRUE{3}(1:3,4);
             efpos_true = [efpos_true,o3_b_true];
             
             hb_2_single = fk_single(hb_0,q,links);
@@ -82,7 +93,9 @@ for i = -0:0
 
             % FK lookup
             hb_2_lkp = fk_sinlookup(hb_0_nB,q_12b,links_lkp,sin_order);
-            o3_b_lkp = double(hb_2_lkp(1:3,4))/2^translation_order_n;
+            o3_b_lkp_fixed = hb_2_lkp(1:3,4);
+            efpos_lkp_fixed = [efpos_lkp_fixed, o3_b_lkp_fixed];
+            o3_b_lkp = double(o3_b_lkp_fixed)/2^translation_order_n;
             efpos_lkp = [efpos_lkp,o3_b_lkp];
             
             hb_2_tay = fk_taylor(hb_0_nB,q_12b, links_tay, sin_order);
@@ -95,10 +108,11 @@ for i = -0:0
     end
 end
 
+
+
+
 figure(1)
 plot(oerr)
-
-
 
 figure(2)
 clf 
@@ -108,6 +122,7 @@ plot3(efpos_lkp(1,:),efpos_lkp(2,:), efpos_lkp(3,:));
 plot3(efpos_poly(1,:),efpos_poly(2,:), efpos_poly(3,:));
 plot3(efpos_tay(1,:),efpos_tay(2,:), efpos_tay(3,:));
 plot3(efpos_single(1,:),efpos_single(2,:), efpos_single(3,:));
+plot3(sweepfixed(:,1)/2^16,sweepfixed(:,2)/2^16,sweepfixed(:,3)/2^16);
 hold off
 axis vis3d
 view([-41.3720,22.2014]);
@@ -128,6 +143,11 @@ plot3(err_sinpoly(1,:),err_sinpoly(2,:), err_sinpoly(3,:));
 err_sintay = (efpos_true - efpos_tay);
 plot3(err_sintay(1,:),err_sintay(2,:), err_sintay(3,:));
 
+
+errcpp = (floor(efpos_lkp*2^16) - sweepfixed')/2^16;
+plot3(errcpp(1,:),errcpp(2,:), errcpp(3,:));
+
+
 err_single = (efpos_true - efpos_single);
 plot3(err_single(1,:),err_single(2,:), err_single(3,:));
 
@@ -135,7 +155,40 @@ hold off
 maxmean = [max(oerr), mean(oerr)]
 axis vis3d
 view([8.5178,9.2187]);
+efpos_lkp_fixed = efpos_lkp_fixed';
 
+%%
+for i = 1:length(sweepq)
+    q_12b = int32(sweepq(i,:));
+    
+    hb_2_lkp = fk_sinlookup(hb_0_nB,q_12b,links_lkp,sin_order);
+    o3_b_lkp_fixed = hb_2_lkp(1:3,4);
+    
+    o3_cpp = sweepfixed(i,:);
+    
+%     disp(double(o3_b_lkp_fixed));
+%     disp(o3_cpp');
+%     disp(int32(o3_cpp' ) - o3_b_lkp_fixed);
+    error = int32(o3_cpp' ) - o3_b_lkp_fixed;
+    
+    if(max(error) > 0)
+        disp(q_12b)
+    end
+end
+%%
+q = floor(4096*[pi/4,-pi/6,pi/4])/4096;
+% q = [0,0,0];
+hb_2_TRUE = fk(hb_0,q,links);
+o3_b_true = hb_2_TRUE{1}(1:3,4)
+disp(hb_2_TRUE{3})
+
+% h0_1 = Hz(q(1))*links{1}
+% h1_2 = Hz(q(2))*links{2}
+% h2_3 = Hz(q(3))*links{3}
+% 
+% hb_1 = hb_0*h0_1
+% hb_2 = hb_1*h1_2
+% hb_3 = hb_2*h2_3
 
 
 %%
