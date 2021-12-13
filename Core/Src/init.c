@@ -319,7 +319,7 @@ void MX_USART2_UART_Init(void)
 
 	/* USER CODE END USART2_Init 1 */
 	huart2.Instance = USART2;
-	huart2.Init.BaudRate = 921600;
+	huart2.Init.BaudRate = 230400;
 	huart2.Init.WordLength = UART_WORDLENGTH_8B;
 	huart2.Init.StopBits = UART_STOPBITS_1;
 	huart2.Init.Parity = UART_PARITY_NONE;
@@ -333,7 +333,10 @@ void MX_USART2_UART_Init(void)
 		Error_Handler();
 	}
 	/* USER CODE BEGIN USART2_Init 2 */
-
+	/*My additions for baremetal handler modification: */
+	USART2->CR1 |= (1 << 5) | (1 << 7) | (1 << 2) | (1 << 3);	//enable rxneie, txeie, RE and TE
+	USART2->CR1 &= ~(1 << 7);	//disable TX interrupt
+	USART2->CR1 |= (1 << 4);	//enable IDLE interrupt
 	/* USER CODE END USART2_Init 2 */
 
 }
@@ -406,8 +409,9 @@ void MX_GPIO_Init(void)
                            PB7 */
 	GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6
 			|GPIO_PIN_7;
-	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }

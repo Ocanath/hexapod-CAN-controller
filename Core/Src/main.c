@@ -5,6 +5,7 @@
 #include "uart-disp-tools.h"
 #include "trig_fixed.h"
 #include "hexapod_params.h"
+#include "m_uart.h"
 #include <string.h>
 
 static int led_idx = NUM_JOINTS;
@@ -252,21 +253,12 @@ int main(void)
 			int bidx = 0;
 			uint8_t buf[NUM_JOINTS*sizeof(float)];
 
-
-
 			for(int i = 0; i < NUM_JOINTS; i++)
 			{
 				fmt.v = chain[i].q;
 				buffer_data(fmt.d, sizeof(float),buf,&bidx);
 			}
-//			fmt.v = chain[0].q;
-//			buffer_data(fmt.d, sizeof(float), buf, &bidx);
-//			fmt.v = chain[0].qd;
-//			buffer_data(fmt.d, sizeof(float), buf, &bidx);
-
-
-
-			HAL_UART_Transmit_IT(&huart2,buf,NUM_JOINTS*sizeof(float));
+			m_uart_tx_start(&m_huart2, buf, NUM_JOINTS*sizeof(float));
 		}
 
 	}
