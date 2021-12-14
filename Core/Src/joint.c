@@ -243,6 +243,8 @@ void update_joint_from_can_data(can_payload_t * payload, joint * j)
 /*
  * Performs normal mode torque/position commands to motors. Operates on a list of joints,
  * stored in the chain pointer.
+ *
+ * TODO: make nonblocking timeout, or just do a straight up interrupt version
  */
 void joint_comm_motor(joint * chain, int num_joints)
 {
@@ -284,4 +286,5 @@ void joint_comm_motor(joint * chain, int num_joints)
 		}
 	}
 }
+
 

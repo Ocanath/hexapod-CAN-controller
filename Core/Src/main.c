@@ -6,6 +6,7 @@
 #include "trig_fixed.h"
 #include "hexapod_params.h"
 #include "m_uart.h"
+#include "RS485-master.h"
 #include <string.h>
 
 static int led_idx = NUM_JOINTS;
@@ -149,6 +150,24 @@ int main(void)
 //	j32->cos_q = (int32_t)(sin62b(400)>>32);
 	while(1)
 	{
+		handle_RS485_master(1);
+
+		int16_t q1 = gl_rs485_nodes[0].theta.v;
+		int16_t q2 = gl_rs485_nodes[1].theta.v;
+		int16_t q3 = gl_rs485_nodes[2].theta.v;
+
+		rgb_t rgb = {0};
+		if(q1 > -2000 && q1 < 2000)
+			rgb.r = 255;
+		if(q2 > -2000 && q2 < 2000)
+			rgb.g = 255;
+		if(q3 > -2000 && q3 < 2000)
+			rgb.b = 255;
+
+		rgb_play(rgb);
+	}
+	while(1)
+	{
 
 		for(int m = 0; m < NUM_JOINTS; m++)
 		{
@@ -244,23 +263,22 @@ int main(void)
 
 		blink_motors_in_chain();
 
-		uint32_t tick = HAL_GetTick();
-		if(tick >= disp_ts)
-		{
-			disp_ts = tick+5;
-
-			floatsend_t fmt;
-			int bidx = 0;
-			uint8_t buf[NUM_JOINTS*sizeof(float)];
-
-			for(int i = 0; i < NUM_JOINTS; i++)
-			{
-				fmt.v = chain[i].q;
-				buffer_data(fmt.d, sizeof(float),buf,&bidx);
-			}
-			m_uart_tx_start(&m_huart2, buf, NUM_JOINTS*sizeof(float));
-		}
-
+//		uint32_t tick = HAL_GetTick();
+//		if(tick >= disp_ts)
+//		{
+//			disp_ts = tick+5;
+//
+//			floatsend_t fmt;
+//			int bidx = 0;
+//			uint8_t buf[NUM_JOINTS*sizeof(float)];
+//
+//			for(int i = 0; i < NUM_JOINTS; i++)
+//			{
+//				fmt.v = chain[i].q;
+//				buffer_data(fmt.d, sizeof(float),buf,&bidx);
+//			}
+//			m_uart_tx_start(&m_huart2, buf, NUM_JOINTS*sizeof(float));
+//		}
 	}
 }
 
