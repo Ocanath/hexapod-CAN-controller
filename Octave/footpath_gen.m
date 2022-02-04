@@ -1,14 +1,17 @@
 %returns the vector V in R^2 (3-vector with z=0) which
 % is parameterized through the periodic function defined here
 function v = footpath_gen(time, h, w, period)
-    t = mod(time,period)/period; %create normalized time
-
-    % y = -c*t.^2 + h
-    % x = t*w/2
+    TWO_PI = 2*pi;
+    t = mod(time*TWO_PI/period,TWO_PI)/(TWO_PI); %create normalized time
     
     %todo: change timestamps p1 and p2 (percentages) to normalize speed for each region
-    p1 = 1/3;
-    p2 = 2/3;
+    parabola_length = footpath_integral_closedform(w,h,1)-footpath_integral_closedform(w,h,-1);  %parabola length.
+    perc_step = w/(w+parabola_length);   %percent of total path length occupied by the step portion of the motion
+    
+    p1 = perc_step/2;
+    p2 = 1-p1;
+%     p1 = 1/3;
+%     p2 = 2/3;
     
     if(t >= 0 && t < p1)
         t = (t - 0)/(p1 - 0);

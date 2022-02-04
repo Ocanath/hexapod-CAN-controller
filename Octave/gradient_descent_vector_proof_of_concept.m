@@ -28,3 +28,5 @@ ylim([-1.5,1.5])
 
 legend('','vq','vq step','vq_new','sums');
 axis equal
+
+clear all

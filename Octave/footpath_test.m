@@ -1,8 +1,8 @@
 %% test footpath gen
-h = 3;
+h = 0.7;
 w = 2;
 
-t = 0:.001:3.0;
+t = 0:.001:3;
 v = zeros(3,length(t));
 for i = 1:length(t)
     v(:,i) = footpath_gen(t(i),h,w,3);
@@ -17,7 +17,7 @@ vf = Hx(pi/2)*v4;
 vf = Hz(-pi/2)*vf;
 vf = vf(1:3,:) + startpos_foot;%translate
 
-
+vf = vf + [t/10; 0*t; 0*t];
 
 figure(1)
 clf
