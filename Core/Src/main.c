@@ -123,20 +123,19 @@ int main(void)
 	HAL_Delay(100);
 
 	for(int i = 0; i < NUM_JOINTS; i++)
-		chain[i].misc_cmd = SET_FOC_MODE;//SET_FOC_MODE; //chain[i].misc_cmd = EN_UART_ENC;
+		chain[i].misc_cmd = SET_SINUSOIDAL_MODE;//SET_FOC_MODE; //chain[i].misc_cmd = EN_UART_ENC;
 	for(int i = 0; i < NUM_JOINTS; i++)
 		joint_comm_misc(&chain[i]);
 
 
 	chain[0].tau.f32[0] = 15.f;
 
-	joint_comm_motor(chain, NUM_JOINTS);
+	chain_comm(chain, NUM_JOINTS);
 //	for(int m = 0; m < NUM_JOINTS; m++)
 //		chain[m].qd=chain[m].q;
 
 	rgb_play((rgb_t){0,255,0});
-	uint32_t disp_ts = HAL_GetTick()+15;
-//	can_network_keyboard_discovery();
+	can_network_keyboard_discovery();
 
 //	joint * j32 = joint_with_id(32,chain,NUM_JOINTS);
 //	j32->ctl.kp = 9.0f;
@@ -193,7 +192,7 @@ int main(void)
 
 
 
-		joint_comm_motor(chain, NUM_JOINTS);
+		chain_comm(chain, NUM_JOINTS);
 
 		/*
 		 * HEY!!!!!!!!!!!!!!!!!!!!!
@@ -282,8 +281,90 @@ int main(void)
 	}
 }
 
+
+
+/*Spoof a normal joint comm, without the overhead.
+ * Send a command of 0 torque out, and wait for a
+ * response from a matching ID
+ *
+ * CAN network analysis tool.
+ * */
+int check_joint(int id)
+{
+	can_tx_header.StdId = id;
+	HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, 0, &can_tx_mailbox);
+
+	for(uint32_t exp_ts = HAL_GetTick()+1; HAL_GetTick() < exp_ts;)
+	{
+		if(HAL_CAN_IsTxMessagePending(&hcan1, can_tx_mailbox) == 0)
+			break;
+	}
+
+	for(uint32_t exp_ts = HAL_GetTick()+10;  HAL_GetTick() < exp_ts;)
+	{
+		if(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) >= 1)
+		{
+			if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can_rx_header, can_rx_data.d) == HAL_OK)
+			{
+				if(can_rx_header.StdId == id)
+				{
+					return 0;
+				}
+			}
+		}
+	}
+	return -1;
+}
+
 void can_network_keyboard_discovery(void)
 {
+
+	print_string("STARTING NETWORK DISCOVERY...\r\n");
+	print_string("Press any key to begin\r\n");
+	gl_uart_rx_kb_activity_flag = 0;
+	while(gl_uart_rx_kb_activity_flag == 0);
+	gl_uart_rx_kb_activity_flag = 0;
+
+	int num_responsive = 0;
+	for(int i = 0; i < NUM_JOINTS; i++)
+	{
+		if(chain[i].responsive == 1)
+		{
+			sprintf(gl_print_str, "Joint %d (id = %d) responsive\r\n", i, chain[i].id);
+			print_string(gl_print_str);
+			num_responsive++;
+		}
+	}
+	sprintf(gl_print_str, "Discovered %d out of %d expected nodes\r\n", num_responsive, NUM_JOINTS);
+	print_string(gl_print_str);
+	print_string("Do full network analysis? Y/N\r\n");
+	while(gl_uart_rx_kb_activity_flag == 0);
+	gl_uart_rx_kb_activity_flag = 0;
+	char cmd = m_huart2.rx_buf[0];
+	if(cmd != 'Y')
+	{
+		print_string("Skipping full network analysis.\r\n");
+	}
+	else
+	{
+		num_responsive = 0;
+		print_string("Scanning for responsive motor joints...\r\n");
+		int num_possible_ids = 1<<11;
+		for(int id = 0; id < num_possible_ids; id++)
+		{
+			int rc = check_joint(id);
+			if(rc == 0)
+			{
+				sprintf(gl_print_str, "Found node ID: %d\r\n", id);
+				print_string(gl_print_str);
+				num_responsive++;
+			}
+		}
+		sprintf(gl_print_str, "Discovered %d nodes\r\n", num_responsive);
+		print_string(gl_print_str);
+	}
+
+	print_string("Keyboard mode. Press > to go to next node, < to go back\r\n");
 
 	int can_node_discovery_idx = 0;
 	int prev_discovery_idx = 0;
@@ -306,11 +387,10 @@ void can_network_keyboard_discovery(void)
 			led_ts = tick + 250;
 		}
 
-		uint8_t rxne = (huart2.Instance->ISR & (1 << 5)) != 0;
-		if(rxne)
+		if(gl_uart_rx_kb_activity_flag)
 		{
-			uint16_t rdr = (uint16_t)huart2.Instance->RDR;	//read RDR, thus clearing RXNE
-			char uart_cmd = (char)rdr;
+			gl_uart_rx_kb_activity_flag = 0;
+			char uart_cmd = (char)m_huart2.rx_buf[0];
 
 			if(uart_cmd == '>')
 				can_node_discovery_idx++;
@@ -341,7 +421,7 @@ void can_network_keyboard_discovery(void)
 			sprintf(gl_print_str, "kbin = %c, id = %d, qenc = %d\r\n", uart_cmd, can_node_discovery_idx, (int)(chain[0].q*1000.f));
 			print_string(gl_print_str);
 		}
-		joint_comm_motor(chain, 1);
+		chain_comm(chain, 1);
 
 	}
 

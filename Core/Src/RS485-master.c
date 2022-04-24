@@ -6,6 +6,8 @@
  */
 #include "RS485-master.h"
 
+volatile uint8_t gl_uart_rx_kb_activity_flag = 0;
+
 static volatile int16_fmt_t theta;
 static volatile uint8_t uart_activity_flag = 0;
 static uint8_t active_idx = 0;
@@ -59,6 +61,7 @@ void m_uart_rx_cplt_callback(uart_it_t * h)
 		}
 		uart_activity_flag = 1;
 	}
+	gl_uart_rx_kb_activity_flag = 1;
 }
 
 void handle_RS485_master_blocking(uint32_t timeout)

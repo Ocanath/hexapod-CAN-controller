@@ -93,13 +93,17 @@ typedef struct joint
 
 	uint8_t encoder_mode;
 	uint8_t control_mode;
+
+
+	uint8_t responsive;	//flag to indicate whether successful communication to this ID has been verified (through a 'heartbeat' motor instruction')
 }joint;
 
 extern joint chain[NUM_JOINTS];
 
 float wrap(float in);
 void joint_comm_misc(joint * chain);
-void joint_comm_motor(joint * chain, int num_joints);
+int joint_comm(joint * j);
+void chain_comm(joint * chain, int num_joints);
 uint32_t get_ts_us(void);
 int32_t wrap_fixed(int32_t in, uint32_t k);
 

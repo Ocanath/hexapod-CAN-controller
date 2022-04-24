@@ -240,50 +240,72 @@ void update_joint_from_can_data(can_payload_t * payload, joint * j)
 	j->iq_meas = iq12b;
 }
 
+
+
 /*
  * Performs normal mode torque/position commands to motors. Operates on a list of joints,
  * stored in the chain pointer.
  *
  * TODO: make nonblocking timeout, or just do a straight up interrupt version
  */
-void joint_comm_motor(joint * chain, int num_joints)
+int joint_comm(joint * j)
+{
+	can_tx_header.StdId = j->id;
+	HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, j->tau.d, &can_tx_mailbox);
+
+	for(uint32_t exp_ts = HAL_GetTick()+1; HAL_GetTick() < exp_ts;)
+	{
+		if(HAL_CAN_IsTxMessagePending(&hcan1, can_tx_mailbox) == 0)
+			break;
+	}
+
+	int node_responsive = 0;
+	int wrong_node = 0;
+	int timed_out = 1;
+	for(uint32_t exp_ts = HAL_GetTick()+10;  HAL_GetTick() < exp_ts;)
+	{
+		if(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) >= 1)
+		{
+			if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can_rx_header, can_rx_data.d) == HAL_OK)
+			{
+				timed_out = 0;
+				if(can_rx_header.StdId == j->id)
+				{
+					node_responsive = 1;
+					update_joint_from_can_data(&can_rx_data, chain);
+				}
+				else
+				{
+					wrong_node = 1;
+				}
+			}
+		}
+	}
+	j->responsive = node_responsive;
+	return (node_responsive) | (timed_out << 1) | (wrong_node << 2);	//return msg of 1 is all good.
+}
+
+void chain_comm(joint * chain, int num_joints)
 {
 	for(int i = 0; i < num_joints; i++)
 	{
-		can_tx_header.StdId = chain[i].id;
-		HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, chain[i].tau.d, &can_tx_mailbox);
-
-		for(uint32_t exp_ts = HAL_GetTick()+1; HAL_GetTick() < exp_ts;)
-		{
-			if(HAL_CAN_IsTxMessagePending(&hcan1,can_tx_mailbox) == 0)
-				break;
-		}
-
-		for(uint32_t exp_ts = HAL_GetTick()+10;  HAL_GetTick() < exp_ts;)
-		{
-			if(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) >= 1)
-			{
-				if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can_rx_header, can_rx_data.d) == HAL_OK)
-				{
-					if(can_rx_header.StdId == chain[i].id)
-					{
-						update_joint_from_can_data(&can_rx_data, &chain[i]);
-					}
-					else
-					{
-						for(int sb = 0; sb < num_joints; sb++)	//sb = search base
-						{
-							int sidx = (sb + i) % num_joints;
-							if(can_rx_header.StdId == chain[sidx].id)
-							{
-								update_joint_from_can_data(&can_rx_data, &chain[sidx]);
-							}
-						}
-					}
-				}
-				break;
-			}
-		}
+		int rc = joint_comm(&chain[i]);
+//		if(rc != 1)
+//		{
+//			uint8_t timed_out = (rc & (1 << 1)) >> 1;
+//			if(chain[i].responsive == 0 && timed_out == 0)	//means a different node responded
+//			{
+//				for(int j = 0; j < num_joints; j++)
+//				{
+//					int lki = (j + i) % num_joints;
+//					joint * pj = &chain[lki];
+//					if(can_rx_header.StdId == pj->id)
+//					{
+//						update_joint_from_can_data(&can_rx_data,pj);
+//					}
+//				}
+//			}
+//		}
 	}
 }
 
