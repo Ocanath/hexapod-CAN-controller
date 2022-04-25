@@ -27,6 +27,7 @@ typedef struct slave_node_t
 }slave_node_t;
 
 extern volatile slave_node_t gl_rs485_nodes[NUM_SLAVES];
+extern volatile uint8_t gl_non_rs485_uart_active_flag;
 
 void handle_RS485_master_blocking(uint32_t timeout);
 void handle_RS485_master(uint32_t timeout);

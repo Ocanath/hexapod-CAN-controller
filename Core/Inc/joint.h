@@ -15,7 +15,7 @@
 #define RAD_TO_DEG	57.2957795
 #define DEG_TO_RAD	0.0174532925f
 
-#define NUM_JOINTS 9
+#define NUM_JOINTS 18
 
 enum {
 	LED_ON = 0xDE,

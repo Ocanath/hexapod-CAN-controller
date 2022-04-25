@@ -6,6 +6,8 @@
  */
 #include "RS485-master.h"
 
+volatile uint8_t gl_non_rs485_uart_active_flag = 0;
+
 static volatile int16_fmt_t theta;
 static volatile uint8_t uart_activity_flag = 0;
 static uint8_t active_idx = 0;
@@ -58,6 +60,11 @@ void m_uart_rx_cplt_callback(uart_it_t * h)
 			}
 		}
 		uart_activity_flag = 1;
+	}
+	else
+	{
+		gl_non_rs485_uart_active_flag = 1;
+		//consider a double buffer load here
 	}
 }
 

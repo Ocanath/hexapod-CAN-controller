@@ -136,7 +136,7 @@ int main(void)
 
 	rgb_play((rgb_t){0,255,0});
 	uint32_t disp_ts = HAL_GetTick()+15;
-//	can_network_keyboard_discovery();
+	can_network_keyboard_discovery();
 
 //	joint * j32 = joint_with_id(32,chain,NUM_JOINTS);
 //	j32->ctl.kp = 9.0f;
@@ -148,24 +148,7 @@ int main(void)
 //
 //	j32->sin_q = sin_lookup(400,30);
 //	j32->cos_q = (int32_t)(sin62b(400)>>32);
-	while(1)
-	{
-		handle_RS485_master(1);
 
-		int16_t q1 = gl_rs485_nodes[0].theta.v;
-		int16_t q2 = gl_rs485_nodes[1].theta.v;
-		int16_t q3 = gl_rs485_nodes[2].theta.v;
-
-		rgb_t rgb = {0};
-		if(q1 > -2000 && q1 < 2000)
-			rgb.r = 255;
-		if(q2 > -2000 && q2 < 2000)
-			rgb.g = 255;
-		if(q3 > -2000 && q3 < 2000)
-			rgb.b = 255;
-
-		rgb_play(rgb);
-	}
 	while(1)
 	{
 
@@ -289,6 +272,12 @@ void can_network_keyboard_discovery(void)
 	int prev_discovery_idx = 0;
 	uint32_t led_ts = 0;
 	uint8_t led_state = 0;
+	print_string("Manual node scanner activated.\r\n");
+	while(m_huart2.bytes_to_send != 0);
+	print_string("Type > to increase id, < to decrease\r\n");
+	while(m_huart2.bytes_to_send != 0);
+	print_string("If an id matches, the motor node will blink in time with the master\r\n");
+	while(m_huart2.bytes_to_send != 0);
 	while(1)
 	{
 		uint32_t tick = HAL_GetTick();
@@ -306,11 +295,12 @@ void can_network_keyboard_discovery(void)
 			led_ts = tick + 250;
 		}
 
-		uint8_t rxne = (huart2.Instance->ISR & (1 << 5)) != 0;
-		if(rxne)
+		uint8_t rxne = 0;
+		if(gl_non_rs485_uart_active_flag)
 		{
-			uint16_t rdr = (uint16_t)huart2.Instance->RDR;	//read RDR, thus clearing RXNE
-			char uart_cmd = (char)rdr;
+			gl_non_rs485_uart_active_flag = 0;
+
+			char uart_cmd = m_huart2.rx_buf[0];
 
 			if(uart_cmd == '>')
 				can_node_discovery_idx++;
