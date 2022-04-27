@@ -127,12 +127,7 @@ int main(void)
 	for(int i = 0; i < NUM_JOINTS; i++)
 		joint_comm_misc(&chain[i]);
 
-
-	chain[0].tau.f32[0] = 15.f;
-
 	chain_comm(chain, NUM_JOINTS);
-//	for(int m = 0; m < NUM_JOINTS; m++)
-//		chain[m].qd=chain[m].q;
 
 	rgb_play((rgb_t){0,255,0});
 	can_network_keyboard_discovery();
@@ -147,137 +142,25 @@ int main(void)
 //
 //	j32->sin_q = sin_lookup(400,30);
 //	j32->cos_q = (int32_t)(sin62b(400)>>32);
-	while(1)
-	{
-		handle_RS485_master(1);
 
-		int16_t q1 = gl_rs485_nodes[0].theta.v;
-		int16_t q2 = gl_rs485_nodes[1].theta.v;
-		int16_t q3 = gl_rs485_nodes[2].theta.v;
-
-		rgb_t rgb = {0};
-		if(q1 > -2000 && q1 < 2000)
-			rgb.r = 255;
-		if(q2 > -2000 && q2 < 2000)
-			rgb.g = 255;
-		if(q3 > -2000 && q3 < 2000)
-			rgb.b = 255;
-
-		rgb_play(rgb);
-	}
 	while(1)
 	{
 
 		for(int m = 0; m < NUM_JOINTS; m++)
 		{
-//			float err = wrap(chain[m].qd - chain[m].q);
-//			float tau = ctl_PI(err, 0.3f, 222.f, &x_PI[m]);
-//			x_PI[m] = sat_v(x_PI[m], 0.5f, -0.5f);
-//			tau = sat_v(-tau, 0.5f, -0.5f);
-			chain[m].tau.f32[0] = 0;
+			chain[m].mtn16.i16[0] = 0;
 		}
 
-		float t = ((float)HAL_GetTick())*.001f;
-
-//		j32->qd = 1.5f*sin_fast(t);
-//		j32->qd = 2.0f;
-
-//		float dqout_from_rotor = (j32->dq_rotor*-0.0625f);	//convert rotor speed to gearbox speed in rad/s. Sign flip from mechanism
-
-//  		float err = wrap(j32->qd - j32->q);
-//		float u = ctl_PI(err, &j32->ctl);
-//		u -= j32->ctl.kd*dqout_from_rotor;//if we use rotor as damping instead of output velocity estimate, much lower noise (and higher damping as a result) is possible
-
-//		j32->tau.i16[0] = (int16_t)(-4096.f*u);
-
-
-
-		chain_comm(chain, NUM_JOINTS);
-
-		/*
-		 * HEY!!!!!!!!!!!!!!!!!!!!!
-		 * HEY HEY HEY HEY!!!!!!!!!!!!!!!!!!!!!
-		 * ALKSJALSDJALSDJALSDJALSDJALSDJALSDJALSDJ
-		 *
-		 *
-		 * This does forward kinematics for properly initialized chain array,
-		 * where you do triples with ascending frame association.
-		 *
-		 * It is floating point and appears to... disagree...
-		 * with visual studio. issue likely arises from floating point numbers
-		 * in the wrong scale, i.e. mixing 0-1 scale with
-		 * 100 scale when computing distances.
-		 *
-		 *
-		 * Solutions!!!
-		 * 1. 32bit FIXED POINT.
-		 * 		This option will be the absolute fastest option available.
-		 * 		However, you can't just scale up mm to mm*4096 and do these
-		 * 		calculations with impunity.
-		 *
-		 * 		For instance, (700mm * 4096)*4096 is a 33 bit number!!
-		 *
-		 * 		This is most likely the reason we're losing reso. It's
-		 * 		also a reasonable culprit for simulation instability when
-		 * 		doing numerical IK (by updating q+=tau/bignumber)
-		 *
-		 *		----------------FIXED POINT mm SCALING orders of magnitude maximum possible distances------------------
-		 *
-		 *		The max distance X you can have at any point in your 32bit fixed point kinematics calculation, given a scaling order n
-		 *		is given by:
-		 			X < (2^31-1)/(4096*2^n);
-					X > (-2^31)/(4096*2^n);
-		 *
-		 *		That means:
-		 *			order 8, draw a sphere centered at origin_baseframe of radius 2047mm. If any part
-		 *				of your robot, or any imaginary point your robot foot might want to try and go to,
-		 *				breaks out of that sphere, you'll overflow.
-		 *
-		 *		Reasonable orders are 4-8. You have to be careful about adding terms;
-		 *		if you're order 8, but you add two sin*X terms, your real order is 9 wrt. overflow risk
-		 *
-		 *
-		 * 2. 32bit floats, with normalized distance
-		 * 		The idea here is that we would avoid
-		 * 		repeated/accumulated floating point errors by
-		 * 		normalizing our translations, doing FK, then
-		 * 		re-scaling the translations back.
-		 *
-		 * 		This would be similar to, for instance,
-		 * 		converting all the link distances from mm to m
-		 * 		or inches, doing FK, then converting back to inches.
-		 *
-		 * 		This would potentially improve accuracy, but would not be
-		 * 		much faster.
-		 *
-		 *
-		 * 3. 64bit fixed. This allows for a large scaling factor for translations without risk of overflow.
-		 * 		Same as option 1. but twice as slow.
-		 *
-		 *
-		for(int leg = 0; leg < NUM_LEGS; leg++)
-			forward_kinematics(gl_hex.hb_0[leg], gl_hex.p_joint[leg]);
-		 */
-
+		for(int m = 0; m < NUM_JOINTS; m++)
+		{
+			/*In the main/actual motion loop, only move joints that have responded properly*/
+			if(chain[m].responsive)
+			{
+				joint_comm(&chain[m]);
+			}
+		}
 
 		blink_motors_in_chain();
-
-//		uint32_t tick = HAL_GetTick();
-//		if(tick >= disp_ts)
-//		{
-//			disp_ts = tick+5;
-//
-//			floatsend_t fmt;
-//			int bidx = 0;
-//			uint8_t buf[NUM_JOINTS*sizeof(float)];
-//
-//			for(int i = 0; i < NUM_JOINTS; i++)
-//			{
-//				fmt.v = chain[i].q;
-//				buffer_data(fmt.d, sizeof(float),buf,&bidx);
-//			}
-//			m_uart_tx_start(&m_huart2, buf, NUM_JOINTS*sizeof(float));
-//		}
 	}
 }
 
@@ -392,37 +275,73 @@ void can_network_keyboard_discovery(void)
 			gl_uart_rx_kb_activity_flag = 0;
 			char uart_cmd = (char)m_huart2.rx_buf[0];
 
+			/*Keyboard in handle node selection*/
 			if(uart_cmd == '>')
+			{
 				can_node_discovery_idx++;
+			}
 			else if(uart_cmd == '<')
+			{
 				can_node_discovery_idx--;
+			}
 			if(can_node_discovery_idx < 0)
 				can_node_discovery_idx = 0;
 			else if(can_node_discovery_idx > 128)
 				can_node_discovery_idx = 128;//arbitary limit on node address which is lower than can-limited node address upper bound.
 
+			/*Handle exit, motor velocity control commands*/
+			if(uart_cmd == 'X')
+			{
+				break;
+			}
+			else if(uart_cmd == 'w')
+			{
+				chain[0].mtn16.i16[0] += 10;
+				sprintf(gl_print_str, "n%d i/vq = %d, ", can_node_discovery_idx, (int)chain[0].mtn16.i16[0]);
+				print_string(gl_print_str);
+			}
+			else if(uart_cmd == 's')
+			{
+				chain[0].mtn16.i16[0] -= 10;
+				sprintf(gl_print_str, "n%d i/vq = %d, ", can_node_discovery_idx, (int)chain[0].mtn16.i16[0]);
+				print_string(gl_print_str);
+			}
+
+
 			if(can_node_discovery_idx != prev_discovery_idx)
 			{
+				int stat_word = 0;
+				int rc = 0;
 				chain[0].misc_cmd = LED_OFF;
 				chain[0].id = prev_discovery_idx;
-				joint_comm_misc(&(chain[0]));
+				rc = joint_comm_misc(&(chain[0]));
+				stat_word |= rc;
 
+				chain[0].misc_cmd = SET_SINUSOIDAL_MODE;
+				chain[0].id = can_node_discovery_idx;
+				rc = joint_comm_misc(&(chain[0]));
+				stat_word |= (rc << 3);
 
 				chain[0].misc_cmd = EN_UART_ENC;
 				chain[0].id = can_node_discovery_idx;
-				joint_comm_misc(&(chain[0]));
+				rc = joint_comm_misc(&(chain[0]));
+				stat_word |= (rc << 1);
 
 				chain[0].misc_cmd = LED_ON;
 				chain[0].id = can_node_discovery_idx;
-				joint_comm_misc(&(chain[0]));
+				rc = joint_comm_misc(&(chain[0]));
+				stat_word |= (rc << 2);
+
+
+				sprintf(gl_print_str, "id %d setup code 0x%.2X ", can_node_discovery_idx, stat_word);
+				print_string(gl_print_str);
 			}
 			prev_discovery_idx = can_node_discovery_idx;
 
-			sprintf(gl_print_str, "kbin = %c, id = %d, qenc = %d\r\n", uart_cmd, can_node_discovery_idx, (int)(chain[0].q*1000.f));
+			sprintf(gl_print_str, "kbin = %c, id = %d, qenc = %d, raw = 0x%.4X\r\n", uart_cmd, can_node_discovery_idx, (int)(chain[0].q*1000.f), (unsigned int)can_rx_data.ui32[0]);
 			print_string(gl_print_str);
 		}
-		chain_comm(chain, 1);
-
+		joint_comm(&chain[0]);
 	}
 
 }
@@ -445,11 +364,19 @@ void blink_motors_in_chain(void)
 				chain[i].misc_cmd = LED_OFF;
 		}
 
-		led_idx = (led_idx + 1) % (NUM_JOINTS+1);
-		if(led_idx == NUM_JOINTS)
-			can_tx_ts = HAL_GetTick()+700;
-		else
-			can_tx_ts = HAL_GetTick()+500;
+		/*Search the leg list for the next valid joint*/
+		for(int jidx = 0; jidx < NUM_JOINTS; jidx++)
+		{
+			led_idx = (led_idx + 1) % (NUM_JOINTS+1);
+			if(led_idx == NUM_JOINTS)
+				can_tx_ts = HAL_GetTick()+700;
+			else
+				can_tx_ts = HAL_GetTick()+500;
+			if(chain[led_idx].responsive==1)
+			{
+				break;
+			}
+		}
 
 		if(led_idx < NUM_JOINTS)
 		{

@@ -15,7 +15,7 @@
 #define RAD_TO_DEG	57.2957795
 #define DEG_TO_RAD	0.0174532925f
 
-#define NUM_JOINTS 9
+#define NUM_JOINTS 18
 
 enum {
 	LED_ON = 0xDE,
@@ -62,7 +62,7 @@ typedef struct joint
 	mat4_32b_t h32_link;
 
 	//Delivered to the motor. Velocity or torque.
-	can_payload_t tau;
+	can_payload_t mtn16;
 
 	//Measured quantites, delivered over can
 	float q;
@@ -101,7 +101,7 @@ typedef struct joint
 extern joint chain[NUM_JOINTS];
 
 float wrap(float in);
-void joint_comm_misc(joint * chain);
+int joint_comm_misc(joint * chain);
 int joint_comm(joint * j);
 void chain_comm(joint * chain, int num_joints);
 uint32_t get_ts_us(void);

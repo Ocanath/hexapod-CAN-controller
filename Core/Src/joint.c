@@ -7,7 +7,8 @@
 #include "joint.h"
 #include "trig_fixed.h"
 
-joint chain[NUM_JOINTS] = {
+joint chain[NUM_JOINTS] =
+{
 		{						//1
 				.id = 24,
 				.frame = 1,
@@ -15,7 +16,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = -8.8f*DEG_TO_RAD,
-				.tau = {.f32 = {0.f, 0.f} },
+				.mtn16 = {{0}},
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -26,7 +27,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = 27.275f*DEG_TO_RAD,
-				.tau = {.f32 = {0.f, 0.f} },
+				.mtn16 = {{0}},
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -37,7 +38,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = -325.32539f*DEG_TO_RAD,
-				.tau = {.f32 = {0.f, 0.f} },
+				.mtn16 = {{0}},
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -48,7 +49,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = -113.113f*DEG_TO_RAD,
-				.tau = {.f32 = {0.f, 0.f} },
+				.mtn16 = {{0}},
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -59,7 +60,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = 62.621f*DEG_TO_RAD,
-				.tau = {.f32 = {0.f, 0.f} },
+				.mtn16 = {{0}},
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -70,7 +71,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = -179.179f*DEG_TO_RAD,
-				.tau = {.f32 = {0.f, 0.f} },
+				.mtn16 = {{0}},
 				.qd = 0.,
 				.misc_cmd = LED_OFF
 		},
@@ -81,7 +82,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = -27.27*DEG_TO_RAD,
-				.tau = {.f32 = {0.f, 0.f} },
+				.mtn16 = {{0}},
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -92,7 +93,7 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = 49.49*DEG_TO_RAD,
-				.tau = {.f32 = {0.f, 0.f} },
+				.mtn16 = {{0}},
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
@@ -103,11 +104,37 @@ joint chain[NUM_JOINTS] = {
 				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
 				.q = 0,
 				.q_offset = 0,
-				.tau = {.f32 = {0.f, 0.f} },
+				.mtn16 = {{0}},
 				.qd = 0.f,
 				.misc_cmd = LED_OFF
+		},
+		{
+			.id = 31
+		},
+		{
+			.id = 33
+		},
+		{
+			.id = 34
+		},
+		{
+			.id = 35
+		},
+		{
+			.id = 36
+		},
+		{
+			.id = 37
+		},
+		{
+			.id = 29
+		},
+		{
+			.id = 30
+		},
+		{
+			.id = 32
 		}
-
 //		{						//8
 //				.id = 32,
 //				.frame = 1,	//frame number will determine how we initialize the link definition and child id
@@ -129,7 +156,7 @@ float wrap(float in)
 /*
  * Performs misc mode commands. operates on a single joint variable, pass by reference.
  */
-void joint_comm_misc(joint * chain)
+int joint_comm_misc(joint * chain)
 {
 	can_tx_header.StdId = 0x7FF - chain->id;
 	can_tx_data.d[0]=chain->misc_cmd;
@@ -151,10 +178,16 @@ void joint_comm_misc(joint * chain)
 		if(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) >= 1)
 		{
 			if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can_rx_header, can_rx_data.d) != HAL_OK)
-			{}
+			{
+				if(can_rx_header.StdId == can_tx_header.StdId)
+				{
+					return 1;
+				}
+			}
 			break;
 		}
 	}
+	return 0;
 }
 
 
@@ -251,7 +284,7 @@ void update_joint_from_can_data(can_payload_t * payload, joint * j)
 int joint_comm(joint * j)
 {
 	can_tx_header.StdId = j->id;
-	HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, j->tau.d, &can_tx_mailbox);
+	HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, j->mtn16.d, &can_tx_mailbox);
 
 	for(uint32_t exp_ts = HAL_GetTick()+1; HAL_GetTick() < exp_ts;)
 	{
