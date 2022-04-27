@@ -199,6 +199,7 @@ int check_joint(int id)
 	return -1;
 }
 
+static joint kb_j = {0};
 void can_network_keyboard_discovery(void)
 {
 
@@ -216,6 +217,10 @@ void can_network_keyboard_discovery(void)
 			sprintf(gl_print_str, "Joint %d (id = %d) responsive\r\n", i, chain[i].id);
 			print_string(gl_print_str);
 			num_responsive++;
+
+			kb_j.misc_cmd = LED_ON;
+			kb_j.id = chain[i].id;
+			joint_comm_misc(&(kb_j));
 		}
 	}
 	sprintf(gl_print_str, "Discovered %d out of %d expected nodes\r\n", num_responsive, NUM_JOINTS);
@@ -292,18 +297,19 @@ void can_network_keyboard_discovery(void)
 			/*Handle exit, motor velocity control commands*/
 			if(uart_cmd == 'X')
 			{
+				print_string("Exiting keyboard interface...\r\n");
 				break;
 			}
 			else if(uart_cmd == 'w')
 			{
-				chain[0].mtn16.i16[0] += 10;
-				sprintf(gl_print_str, "n%d i/vq = %d, ", can_node_discovery_idx, (int)chain[0].mtn16.i16[0]);
+				kb_j.mtn16.i16[0] += 10;
+				sprintf(gl_print_str, "n%d i/vq = %d, ", can_node_discovery_idx, (int)kb_j.mtn16.i16[0]);
 				print_string(gl_print_str);
 			}
 			else if(uart_cmd == 's')
 			{
-				chain[0].mtn16.i16[0] -= 10;
-				sprintf(gl_print_str, "n%d i/vq = %d, ", can_node_discovery_idx, (int)chain[0].mtn16.i16[0]);
+				kb_j.mtn16.i16[0] -= 10;
+				sprintf(gl_print_str, "n%d i/vq = %d, ", can_node_discovery_idx, (int)kb_j.mtn16.i16[0]);
 				print_string(gl_print_str);
 			}
 
@@ -312,24 +318,24 @@ void can_network_keyboard_discovery(void)
 			{
 				int stat_word = 0;
 				int rc = 0;
-				chain[0].misc_cmd = LED_OFF;
-				chain[0].id = prev_discovery_idx;
-				rc = joint_comm_misc(&(chain[0]));
+				kb_j.misc_cmd = LED_OFF;
+				kb_j.id = prev_discovery_idx;
+				rc = joint_comm_misc(&(kb_j));
 				stat_word |= rc;
 
-				chain[0].misc_cmd = SET_SINUSOIDAL_MODE;
-				chain[0].id = can_node_discovery_idx;
-				rc = joint_comm_misc(&(chain[0]));
+				kb_j.misc_cmd = SET_SINUSOIDAL_MODE;
+				kb_j.id = can_node_discovery_idx;
+				rc = joint_comm_misc(&(kb_j));
 				stat_word |= (rc << 3);
 
-				chain[0].misc_cmd = EN_UART_ENC;
-				chain[0].id = can_node_discovery_idx;
-				rc = joint_comm_misc(&(chain[0]));
+				kb_j.misc_cmd = EN_UART_ENC;
+				kb_j.id = can_node_discovery_idx;
+				rc = joint_comm_misc(&(kb_j));
 				stat_word |= (rc << 1);
 
-				chain[0].misc_cmd = LED_ON;
-				chain[0].id = can_node_discovery_idx;
-				rc = joint_comm_misc(&(chain[0]));
+				kb_j.misc_cmd = LED_ON;
+				kb_j.id = can_node_discovery_idx;
+				rc = joint_comm_misc(&(kb_j));
 				stat_word |= (rc << 2);
 
 
@@ -338,10 +344,10 @@ void can_network_keyboard_discovery(void)
 			}
 			prev_discovery_idx = can_node_discovery_idx;
 
-			sprintf(gl_print_str, "kbin = %c, id = %d, qenc = %d, raw = 0x%.4X\r\n", uart_cmd, can_node_discovery_idx, (int)(chain[0].q*1000.f), (unsigned int)can_rx_data.ui32[0]);
+			sprintf(gl_print_str, "kbin = %c, id = %d, qenc = %d, raw = 0x%.4X\r\n", uart_cmd, can_node_discovery_idx, (int)(kb_j.q*1000.f), (unsigned int)can_rx_data.ui32[0]);
 			print_string(gl_print_str);
 		}
-		joint_comm(&chain[0]);
+		joint_comm(&kb_j);
 	}
 
 }
