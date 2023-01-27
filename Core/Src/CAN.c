@@ -35,7 +35,7 @@ void CAN_Init(void)
 
 	/*##-1- Configure the CAN peripheral #######################################*/
 	hcan1.Instance = CAN1;
-	hcan1.Init.Prescaler = 16;
+	hcan1.Init.Prescaler = 2;	//change to 2 for 1mbps
 	hcan1.Init.Mode = CAN_MODE_NORMAL;
 	hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
 	hcan1.Init.TimeSeg1 = CAN_BS1_9TQ;

@@ -18,6 +18,14 @@ joint chain[NUM_JOINTS] =
 				.q_offset = -8.8f*DEG_TO_RAD,
 				.mtn16 = {{0}},
 				.qd = 0.f,
+				.ctl = {
+						.kp = 9.f,
+						.ki_div = 377.f,
+						.x_pi = 0,
+						.x_sat = 1.5f,
+						.kd = 0.2f/3.f,
+						.tau_sat = 0.85f
+				},
 				.misc_cmd = LED_OFF
 		},
 		{						//2
@@ -29,6 +37,14 @@ joint chain[NUM_JOINTS] =
 				.q_offset = 27.275f*DEG_TO_RAD,
 				.mtn16 = {{0}},
 				.qd = 0.f,
+				.ctl = {
+						.kp = 9.f,
+						.ki_div = 377.f,
+						.x_pi = 0,
+						.x_sat = 1.5f,
+						.kd = 0.2f/3.f,
+						.tau_sat = 0.85f
+				},
 				.misc_cmd = LED_OFF
 		},
 		{						//0
@@ -264,6 +280,11 @@ void update_joint_from_can_data(can_payload_t * payload, joint * j)
 
 		j->dq_rotor = (float)(j->dq_rotor16) * 0.062500f;	//dividing by 16 expresses velocity in units of rad/sec
 	}
+	else
+	{
+		j->q32_rotor = payload->i32[0];
+		j->q = (float)(j->q32_rotor/4096.f);
+	}
 
 
 	//j->iq_meas = ((float)payload->i16[3])/4096.f;
@@ -302,10 +323,11 @@ int joint_comm(joint * j)
 			if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can_rx_header, can_rx_data.d) == HAL_OK)
 			{
 				timed_out = 0;
+				exp_ts = 0;
 				if(can_rx_header.StdId == j->id)
 				{
 					node_responsive = 1;
-					update_joint_from_can_data(&can_rx_data, chain);
+					update_joint_from_can_data(&can_rx_data, j);
 				}
 				else
 				{
