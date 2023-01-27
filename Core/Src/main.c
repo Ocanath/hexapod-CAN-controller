@@ -147,7 +147,7 @@ int main(void)
 	chain_comm(chain, NUM_JOINTS);
 
 	rgb_play((rgb_t){0,255,0});
-	can_network_keyboard_discovery();
+	//can_network_keyboard_discovery();
 
 //	joint * j32 = joint_with_id(32,chain,NUM_JOINTS);
 //	j32->ctl.kp = 9.0f;
