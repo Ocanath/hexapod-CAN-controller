@@ -68,7 +68,6 @@ typedef struct ctl_params_t
 {
 	float kp;
 	float ki_div;
-	float kd;
 	float x_pi;
 	float x_sat;
 	float tau_sat;

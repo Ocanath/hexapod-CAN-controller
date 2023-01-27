@@ -23,7 +23,6 @@ joint chain[NUM_JOINTS] =
 						.ki_div = 377.f,
 						.x_pi = 0,
 						.x_sat = 1.5f,
-						.kd = 0.2f/3.f,
 						.tau_sat = 0.85f
 				},
 				.misc_cmd = LED_OFF
@@ -42,7 +41,6 @@ joint chain[NUM_JOINTS] =
 						.ki_div = 377.f,
 						.x_pi = 0,
 						.x_sat = 1.5f,
-						.kd = 0.2f/3.f,
 						.tau_sat = 0.85f
 				},
 				.misc_cmd = LED_OFF

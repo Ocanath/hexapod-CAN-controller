@@ -14,6 +14,22 @@ static int prev_led_idx = NUM_JOINTS-1;
 static uint32_t can_tx_ts = 0;
 
 
+/*
+Generic hex checksum calculation.
+TODO: use this in the psyonic API
+*/
+uint32_t fletchers_checksum32(uint32_t* arr, int size)
+{
+	int32_t checksum = 0;
+	int32_t fchk = 0;
+	for (int i = 0; i < size; i++)
+	{
+		checksum += (int32_t)arr[i];
+		fchk += checksum;
+	}
+	return fchk;
+}
+
 static inline float sat_v(float in, float hth, float lth)
 {
 	if(in > hth)
@@ -22,6 +38,7 @@ static inline float sat_v(float in, float hth, float lth)
 		in = lth;
 	return in;
 }
+
 void can_network_keyboard_discovery(void);
 
 /*
@@ -142,7 +159,7 @@ int main(void)
 //
 //	j32->sin_q = sin_lookup(400,30);
 //	j32->cos_q = (int32_t)(sin62b(400)>>32);
-
+	uint32_t disp_ts = 0;
 	while(1)
 	{
 
@@ -161,6 +178,18 @@ int main(void)
 		}
 
 		blink_motors_in_chain();
+
+		if(HAL_GetTick() > disp_ts)
+		{
+			disp_ts = HAL_GetTick() + 10;
+
+			u32_fmt_t payload[19] = {0};
+			payload[0].i32 = (int32_t)chain[0].q32_rotor;
+			payload[1].i32 = (int32_t)chain[1].q32_rotor;
+			payload[18].u32 = fletchers_checksum32((uint32_t*)payload, 18);
+
+			m_uart_tx_start(&m_huart2, (uint8_t*)payload, sizeof(u32_fmt_t)*19 );
+		}
 	}
 }
 
