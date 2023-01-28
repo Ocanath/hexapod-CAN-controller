@@ -125,6 +125,7 @@ typedef struct joint
 	uint8_t encoder_mode;
 	uint8_t control_mode;
 
+	float tau_static;	//used for internal model gd IK
 
 	uint8_t responsive;	//flag to indicate whether successful communication to this ID has been verified (through a 'heartbeat' motor instruction')
 }joint;

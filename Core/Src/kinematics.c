@@ -6,6 +6,8 @@
  */
 #include "kinematics.h"
 #include "sin-math.h"
+#include "trig_fixed.h"
+#include "RS485-master.h"
 
 ///*
 //	Copies the contents of one mat4_t to the other. could use memcpy interchangably
@@ -163,6 +165,30 @@ void forward_kinematics(mat4_t * hb_0, joint* f1_joint)
 }
 
 /*
+* Arguments:
+*
+* Si: the jacobian vector corresponding to the i'th joint
+* p_b: the reference point, represented in the chain base frame
+* hb_i1: the homogeneous transformation matrix
+*
+*/
+void calc_rotational_jacobian_entry_f(vect6_t* Si, vect3_t* p_b, mat4_t* hb_im1)
+{
+	vect3_t z, d, res;
+	for (int r = 0; r < 3; r++)
+	{
+		z.v[r] = hb_im1->m[r][2];
+		d.v[r] = p_b->v[r] - hb_im1->m[r][3];
+	}
+	cross_pbr(&z, &d, &res);
+	for (int r = 0; r < 3; r++)
+	{
+		Si->v[r] = z.v[r];
+		Si->v[r + 3] = res.v[r];
+	}
+}
+
+/*
 	Calculates the robot jacobian matrix satisfying the relationship v = J*qdot, where qdot is a vector of generalized joint velocities,
 	and v is the linear velocity of the argument 'point' (expressed in chain frame 0, and rigidly attached to the end effector frame).
 
@@ -199,28 +225,156 @@ NOTE:
 	Where [tau] is a vector of torques (size n/number of joints), J^T is the transpose of the jacobian matrix defined above, and
 	f is the same generalized force/torque 6 vector expressed in the 0 frame.
 */
-void calc_J_point(joint * j, int num_joints, vect3_t point)
+void calc_J_point(mat4_t* hb_0, joint * chain_start, vect3_t * point_b)
 {
-	int i, v_idx;
-	vect3_t z;
-	vect3_t d;
-	for (i = 1; i <= num_joints; i++)
+	/*
+	First, obtain the base case. This is contribution of the velocity from joint 1, and
+	is found using the vector formed by the origin of joint 1 and the point, and the
+	axis of rotation of joint 1 in the base frame.
+*/
+	joint* j = chain_start;	//i.e. Joint 1. joint 0 is NOT VALID, which is why hb_0 is passed as an argument and why we need to do a base case
+	calc_rotational_jacobian_entry_f(&j->Si, point_b, hb_0);	//get jacobian entry for joint 1 from hb_0 and the reference point in base frame
+
+	joint* parent = j;
+	while (j->child != NULL)
 	{
-		for (v_idx = 0; v_idx < 3; v_idx++)
-			z.v[v_idx] = j[i - 1].hb_i.m[v_idx][2];					//extract the unit vector corresponding to the axis of rotation of frame i-1 (i.e., the axis of rotation of q)
-		for (v_idx = 0; v_idx < 3; v_idx++)
-			d.v[v_idx] = point.v[v_idx] - j[i - 1].hb_i.m[v_idx][3];	//extract the difference between the target point in the base frame and the origin of frame i-1
-		vect3_t res;
-		cross_pbr(&z, &d, &res);
-
-		j[i].Si.v[0] = z.v[0];		//Si = [w, v]^T;
-		j[i].Si.v[1] = z.v[1];		//z_im1*q = w
-		j[i].Si.v[2] = z.v[2];
-
-		j[i].Si.v[3] = res.v[0];	//(z_im1 x (p - o_im1))*q = v
-		j[i].Si.v[4] = res.v[1];
-		j[i].Si.v[5] = res.v[2];
+		j = j->child;
+		calc_rotational_jacobian_entry_f(&j->Si, point_b, &parent->hb_i);
+		parent = j;
 	}
+}
+
+
+/*Dot product. floating point*/
+float vect_dot(float* v1, float* v2, int n)
+{
+	float res = 0.f;
+	for (int i = 0; i < n; i++)
+	{
+		res += v1[i] * v2[i];
+	}
+	return res;
+}
+
+/*
+	Traverse linked list and load torques into a list of equal size.
+
+	Dangerous; could overrun if the linked list is not set up properly
+*/
+void calc_taulist(joint* chain_start, vect3_t* f)
+{
+	joint* j = chain_start;
+	while (j != NULL)
+	{
+		j->tau_static = vect_dot(&(j->Si.v[3]), f->v, 3);	//remove Si radix to restore original 'f' radix
+		j = j->child;
+	}
+}
+
+
+float abs_f(float v)
+{
+	if(v < 0.0f)
+		v = -v;
+	return v;
+}
+
+
+float Q_rsqrt(float number)
+{
+	u32_fmt_t conv;
+	conv.f32 = number;
+	conv.u32 = 0x5f3759df - (conv.u32 >> 1);
+	conv.f32 *= 1.5F - (number * 0.5F * conv.f32 * conv.f32);
+	return conv.f32;
+}
+
+
+/**/
+float inverse_vect_mag(float* v, int n)
+{
+	float v_dot_v= 0.f;
+	for (int i = 0; i < n; i++)
+		v_dot_v += v[i] * v[i];
+	return Q_rsqrt(v_dot_v);
+}
+
+/**/
+void vect_normalize(float* v, int n)
+{
+	float inv_mag = inverse_vect_mag(v,n);
+	for (int i = 0; i < n; i++)
+	{
+		v[i] = v[i] * inv_mag;
+	}
+}
+
+
+int gd_ik_single(mat4_t* hb_0, joint* start, joint* end, vect3_t* anchor_end, vect3_t* targ_b, vect3_t* anchor_b, float epsilon_divisor)	//num anchors?
+{
+	if (hb_0 == NULL || start == NULL || end == NULL || anchor_end == NULL || targ_b == NULL || anchor_b == NULL)
+		return 0;	//blah
+
+	joint* j;
+	int solved = 0;
+	int cycles = 0;
+	while (solved == 0)
+	{
+		//do forward kinematics
+		forward_kinematics(hb_0, start);
+		htmatrix_vect3_mult(&end->hb_i, anchor_end, anchor_b);	//shift rotation out because only rotational components are added for a ht-multiply
+		calc_J_point(hb_0, start, anchor_b);
+
+		//printf("targ: [%d,%d,%d], ref: [%d,%d,%d]\r\n", o_targ_b->v[0], o_targ_b->v[1], o_targ_b->v[2], o_anchor_b->v[0], o_anchor_b->v[1], o_anchor_b->v[2]);
+		//print_vect_mm("targ: ", o_targ_b, 16, "");
+		//print_vect_mm("ref: ", o_anchor_b, 16, "\r\n");
+
+		//get vector pointing from the anchor point on the robot to the target. call it 'f'. Unscaled.
+		vect3_t f;
+		for (int i = 0; i < 3; i++) //this can have much lower resolution than tau.  high res tau is important
+			f.v[i] = (targ_b->v[i] - anchor_b->v[i]) / 16.f;	//step down from 16 to 12 bit reso for force vector
+		calc_taulist(start, &f);	//removing an n_si (from f) yields tau in radix 16
+
+		//apply a scaled torque vector to the chain structure via. sin and cosine vectors
+		vect3_t z = {{ 0.f, 0.f, 1.f }};
+		solved = 1;
+		j = start;
+		while (j != NULL)
+		{
+			vect3_t vq = {{ j->cos_q_float, j->sin_q_float, 0 }};	//create sin-cos structure
+
+			vect3_t tangent;
+			cross_pbr(&z, &vq, &tangent);		//obtain the tangent vector in the xy plane. it is normalized
+
+			vect3_t vq_new;	//will contain the result of ~q+epsilon for our gradient descent
+
+			//Scale the tangent vector and add it to the original vq vector
+			for (int r = 0; r < 3; r++)
+			{
+				float tmp = (tangent.v[r] * j->tau_static) / epsilon_divisor;
+				vq_new.v[r] = tmp + vq.v[r];
+
+				if (abs_f(tmp) > 0.0001f)
+					solved = 0;
+			}
+
+			vect_normalize(vq_new.v, 3);
+
+			j->cos_q_float = vq_new.v[0];
+			j->sin_q_float = vq_new.v[1];
+
+			j = j->child;
+		}
+		cycles++;
+	}
+
+	j = start;
+	while (j != NULL)
+	{
+		j->q = atan2_approx(j->sin_q_float, j->cos_q_float);
+		j = j->child;
+	}
+	return cycles;
 }
 
 

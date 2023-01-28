@@ -7,6 +7,7 @@
 #include "hexapod_params.h"
 #include "m_uart.h"
 #include "RS485-master.h"
+#include "hexapod_footpath.h"
 #include <string.h>
 
 static int led_idx = NUM_JOINTS;
@@ -101,24 +102,29 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 
 	setup_dynamic_hex(&gl_hex);		//setup the structure to do forward kinematics
-//	gl_hex.p_joint[0]->q16 = PI_12B/4;
-//	gl_hex.p_joint[0]->child->q16 = PI_12B/4;
-//	gl_hex.p_joint[0]->child->child->q16 = PI_12B/4;
-//	joint * j = gl_hex.p_joint[0];
-//	while(j != NULL)
-//	{
-//		int32_t sth = sin_lookup(j->q16,30);
-//		int32_t cth = cos_lookup(j->q16,30);
-//
-//		j->sin_q_float = ((float)sth)/1073741824.f;
-//		j->cos_q_float = ((float)cth)/1073741824.f;
-//
-//		j->sin_q = sth >> 1;
-//		j->cos_q = cth >> 1;
-//
-//		j = j->child;
-//	}
-//	forward_kinematics(&gl_hex.hb_0[0], gl_hex.p_joint[0]);
+
+	for(int leg = 0; leg < 6; leg++)
+	{
+		gl_hex.p_joint[leg]->q16 = PI_12B/4;
+		gl_hex.p_joint[leg]->child->q16 = PI_12B/4;
+		gl_hex.p_joint[leg]->child->child->q16 = PI_12B/4;
+		joint * j = gl_hex.p_joint[leg];
+		while(j != NULL)
+		{
+			int32_t sth = sin_lookup(j->q16,30);
+			int32_t cth = cos_lookup(j->q16,30);
+
+			j->sin_q_float = ((float)sth)/1073741824.f;
+			j->cos_q_float = ((float)cth)/1073741824.f;
+
+			j->sin_q = sth >> 1;
+			j->cos_q = cth >> 1;
+
+			j = j->child;
+		}
+		forward_kinematics(&gl_hex.hb_0[leg], gl_hex.p_joint[leg]);
+	}
+
 	//forward_kinematics_64(&gl_hex.h32_b_0[0],gl_hex.p_joint[0],29);
 
 	uint32_t start_ts = HAL_GetTick();
@@ -133,7 +139,7 @@ int main(void)
 	HAL_Delay(100);
 
 	for(int i = 0; i < NUM_JOINTS; i++)
-		chain[i].misc_cmd = EN_UART_ENC; //chain[i].misc_cmd = EN_UART_ENC;
+		chain[i].misc_cmd = DIS_UART_ENC; //chain[i].misc_cmd = EN_UART_ENC;
 	for(int i = 0; i < NUM_JOINTS; i++)
 		joint_comm_misc(&chain[i]);
 
@@ -159,33 +165,96 @@ int main(void)
 //
 //	j32->sin_q = sin_lookup(400,30);
 //	j32->cos_q = (int32_t)(sin62b(400)>>32);
+	u32_fmt_t payload[19] = {0};
+
 	uint32_t disp_ts = 0;
 	while(1)
 	{
+		float time = ((float)HAL_GetTick())*.001f;
 
-		for(int m = 0; m < NUM_JOINTS; m++)
+//		if(1 == 0)
 		{
-			chain[m].mtn16.i16[0] = 0;
-		}
+			vect3_t foot_xy_1;
+			float h = 40; float w = 100;
+			float period = 2.f;
+			foot_path(time, h, w, period, &foot_xy_1);
 
-		for(int m = 0; m < NUM_JOINTS; m++)
-		{
-			/*In the main/actual motion loop, only move joints that have responded properly*/
-			if(chain[m].responsive)
+			vect3_t foot_xy_2;
+			foot_path(time+period/2.f, h, w, period, &foot_xy_2);
+
+
+			/*Rotate and translate*/
+			float forward_direction_angle = 0.f;	//y axis!
+			mat4_t xrot = Hx(HALF_PI);
+			mat4_t zrot = Hz(forward_direction_angle - HALF_PI);
+			vect3_t tmp;
+			htmatrix_vect3_mult(&xrot, &foot_xy_1, &tmp);
+			htmatrix_vect3_mult(&zrot, &tmp, &foot_xy_1);	//done 1
+			htmatrix_vect3_mult(&xrot, &foot_xy_2, &tmp);
+			htmatrix_vect3_mult(&zrot, &tmp, &foot_xy_2);	//done 2
+
+
+//			int leg = 0;
+			for(int leg = 0; leg < 3; leg++)
 			{
-				joint_comm(&chain[m]);
+				mat4_t lrot = Hz((TWO_PI / 6.f) * (float)leg);
+				vect3_t o_motion_b = {{ 270.f,0.f,-270.f }};
+				htmatrix_vect3_mult(&lrot, &o_motion_b, &tmp);
+				o_motion_b = tmp;
+
+				vect3_t targ_b;
+				for (int i = 0; i < 3; i++)
+				{
+					if (leg % 2 == 0)
+					{
+						targ_b.v[i] = foot_xy_1.v[i] + o_motion_b.v[i];
+					}
+					else
+					{
+						targ_b.v[i] = foot_xy_2.v[i] + o_motion_b.v[i];
+					}
+				}
+
+
+
+				mat4_t* hb_0 = &gl_hex.hb_0[leg];
+				joint*  start = gl_hex.p_joint[leg];
+				joint * end = start->child->child;
+				vect3_t end_anchor = {{0,0,0}};
+				vect3_t anchor_b;
+				gd_ik_single(hb_0, start, end, &end_anchor, &targ_b, &anchor_b, 20000.f);
 			}
 		}
 
-		blink_motors_in_chain();
+
+
+
+
+//		for(int m = 0; m < NUM_JOINTS; m++)
+//		{
+//			chain[m].mtn16.i16[0] = 0;
+//		}
+//
+//		for(int m = 0; m < NUM_JOINTS; m++)
+//		{
+//			/*In the main/actual motion loop, only move joints that have responded properly*/
+//			if(chain[m].responsive)
+//			{
+//				joint_comm(&chain[m]);
+//			}
+//		}
+//
+//		blink_motors_in_chain();
+
 
 		if(HAL_GetTick() > disp_ts)
 		{
 			disp_ts = HAL_GetTick() + 10;
 
-			u32_fmt_t payload[19] = {0};
-			payload[0].i32 = (int32_t)chain[0].q32_rotor;
-			payload[1].i32 = (int32_t)chain[1].q32_rotor;
+			for(int i = 0; i < NUM_JOINTS; i++)
+			{
+				payload[i].i32 = (int32_t)(chain[i].q*4096.f);
+			}
 			payload[18].u32 = fletchers_checksum32((uint32_t*)payload, 18);
 
 			m_uart_tx_start(&m_huart2, (uint8_t*)payload, sizeof(u32_fmt_t)*19 );

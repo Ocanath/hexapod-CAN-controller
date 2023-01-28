@@ -84,6 +84,15 @@ void setup_dynamic_hex(dynamic_hex_t * robot)
 			robot->p_joint[leg++] = &chain[i];
 		chain[i].child = &chain[i+1];
 	}
+	//next, scan through the list and set every third joint child to ZERO
+	//so that our chains are null terminated!
+	for(int i = 0; i < NUM_JOINTS; i++)
+	{
+		if(i % 3 == 2)	//
+		{
+			chain[i].child = NULL;
+		}
+	}
 
 	/*Initialize the hb_0 frame definitions*/
 	const float angle_f = (2 * PI) / 6.f;
