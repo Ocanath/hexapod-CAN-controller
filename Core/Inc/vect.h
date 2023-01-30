@@ -81,6 +81,12 @@ void ht32_mult_pbr(mat4_32b_t * m1, mat4_32b_t * m2, mat4_32b_t * ret);
 void cross32_pbr(vect3_32b_t * v_a, vect3_32b_t * v_b, vect3_32b_t * ret, int n);
 void ht32_mult64_pbr(mat4_32b_t * m1, mat4_32b_t * m2, mat4_32b_t * ret, int n);
 
+float vect_dot(float* v1, float* v2, int n);
+vect6_t vect6_add(vect6_t v_a, vect6_t v_b);
+/*Multiples vector v_a by scalar scale*/
+vect6_t vect6_scale(vect6_t v_a, float scale);
+vect3_t vect3_scale(vect3_t v_a, float scale);
+void vect_normalize(float* v, int n);
 
 mat4_32b_t Hy_nb(int32_t angle, int n);
 mat4_32b_t Hx_nb(int32_t angle, int n);

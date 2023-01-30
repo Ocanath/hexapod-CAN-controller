@@ -8,10 +8,13 @@
 #include "m_uart.h"
 #include "RS485-master.h"
 #include "hexapod_footpath.h"
+#include "kinematics.h"
+#include "dynahex.h"
+#include "m_mcpy.h"
 #include <string.h>
 
-static int led_idx = NUM_JOINTS;
-static int prev_led_idx = NUM_JOINTS-1;
+static int led_idx = NUM_motor_tS;
+static int prev_led_idx = NUM_motor_tS-1;
 static uint32_t can_tx_ts = 0;
 
 
@@ -54,12 +57,12 @@ float ctl_PI(float err, ctl_params_t * ctl)
 	return u;
 }
 
-joint * joint_with_id(int16_t id, joint * joint_table, int num_joints)
+motor_t * motor_t_with_id(int16_t id, motor_t * motor_t_table, int num_motor_ts)
 {
-	for(int i = 0; i < num_joints; i++)
+	for(int i = 0; i < num_motor_ts; i++)
 	{
-		if(joint_table[i].id == id)
-			return &(joint_table[i]);
+		if(motor_t_table[i].id == id)
+			return &(motor_t_table[i]);
 	}
 	return NULL;
 }
@@ -101,31 +104,41 @@ int main(void)
 
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 
-	setup_dynamic_hex(&gl_hex);		//setup the structure to do forward kinematics
 
+	dynahex_t hexapod;
+	init_dynahex_kinematics(&hexapod);
 	for(int leg = 0; leg < 6; leg++)
 	{
-		gl_hex.p_joint[leg]->q16 = PI_12B/4;
-		gl_hex.p_joint[leg]->child->q16 = PI_12B/4;
-		gl_hex.p_joint[leg]->child->child->q16 = PI_12B/4;
-		joint * j = gl_hex.p_joint[leg];
-		while(j != NULL)
-		{
-			int32_t sth = sin_lookup(j->q16,30);
-			int32_t cth = cos_lookup(j->q16,30);
-
-			j->sin_q_float = ((float)sth)/1073741824.f;
-			j->cos_q_float = ((float)cth)/1073741824.f;
-
-			j->sin_q = sth >> 1;
-			j->cos_q = cth >> 1;
-
-			j = j->child;
-		}
-		forward_kinematics(&gl_hex.hb_0[leg], gl_hex.p_joint[leg]);
+		joint * j = hexapod.leg[leg].chain;
+		j[1].q = 0;
+		j[2].q = PI/2;
+		j[3].q = 0;
 	}
+	forward_kinematics_dynahexleg(&hexapod);
 
-	//forward_kinematics_64(&gl_hex.h32_b_0[0],gl_hex.p_joint[0],29);
+	vect3_t targs[6] = {
+		{{332.5646f, -233.385513f, 5.380200f}},
+		{{ 368.400146, 171.316727, 5.380200}},
+		{{35.835365, 404.702271, 5.380200}},
+		{{-332.564697, 233.385468, 5.380200}},
+		{{ -368.400085, -171.316803, 5.380200}},
+		{{-35.835426,  -404.702271, 5.380200 }}
+	};
+	volatile uint32_t ik_start_ts = HAL_GetTick();
+	vect3_t zero = { {0,0,0} };
+	for (int leg = 0; leg < 6; leg++)
+	{
+		vect3_t targ_b;
+		m_mcpy(&targ_b, &targs[leg], sizeof(vect3_t));
+
+		mat4_t* hb_0 = &hexapod.leg[leg].chain[0].him1_i;
+		joint* start = &hexapod.leg[leg].chain[1];
+		joint* end = &hexapod.leg[leg].chain[3];
+		vect3_t anchor_b;
+		int cycles = gd_ik_single(hb_0, start, end, &zero, &targ_b, &anchor_b, 20000.f);
+	}
+	volatile uint32_t ik_end_ts = HAL_GetTick();
+
 
 	uint32_t start_ts = HAL_GetTick();
 	for(uint32_t exp_ts = start_ts + 3000; HAL_GetTick() < exp_ts;)
@@ -135,27 +148,27 @@ int main(void)
 		rgb_t rgb = {c,c,c};
 		rgb_play(rgb);
 	}
-//	joint_comm_misc(chain);
+//	motor_t_comm_misc(chain);
 	HAL_Delay(100);
 
-	for(int i = 0; i < NUM_JOINTS; i++)
+	for(int i = 0; i < NUM_motor_tS; i++)
 		chain[i].misc_cmd = DIS_UART_ENC; //chain[i].misc_cmd = EN_UART_ENC;
-	for(int i = 0; i < NUM_JOINTS; i++)
-		joint_comm_misc(&chain[i]);
+	for(int i = 0; i < NUM_motor_tS; i++)
+		motor_t_comm_misc(&chain[i]);
 
 	HAL_Delay(100);
 
-	for(int i = 0; i < NUM_JOINTS; i++)
+	for(int i = 0; i < NUM_motor_tS; i++)
 		chain[i].misc_cmd = SET_SINUSOIDAL_MODE;//SET_FOC_MODE; //chain[i].misc_cmd = EN_UART_ENC;
-	for(int i = 0; i < NUM_JOINTS; i++)
-		joint_comm_misc(&chain[i]);
+	for(int i = 0; i < NUM_motor_tS; i++)
+		motor_t_comm_misc(&chain[i]);
 
-	chain_comm(chain, NUM_JOINTS);
+	chain_comm(chain, NUM_motor_tS);
 
 	rgb_play((rgb_t){0,255,0});
 	//can_network_keyboard_discovery();
 
-//	joint * j32 = joint_with_id(32,chain,NUM_JOINTS);
+//	motor_t * j32 = motor_t_with_id(32,chain,NUM_motor_tS);
 //	j32->ctl.kp = 9.0f;
 //	j32->ctl.ki_div = 377.f;
 //	j32->ctl.x_pi = 0.f;
@@ -172,6 +185,8 @@ int main(void)
 	{
 		float time = ((float)HAL_GetTick())*.001f;
 
+
+		ik_start_ts = HAL_GetTick();
 //		if(1 == 0)
 		{
 			vect3_t foot_xy_1;
@@ -215,32 +230,30 @@ int main(void)
 					}
 				}
 
-
-
-				mat4_t* hb_0 = &gl_hex.hb_0[leg];
-				joint*  start = gl_hex.p_joint[leg];
-				joint * end = start->child->child;
-				vect3_t end_anchor = {{0,0,0}};
+				mat4_t* hb_0 = &hexapod.leg[leg].chain[0].him1_i;
+				joint* start = &hexapod.leg[leg].chain[1];
+				joint* end = &hexapod.leg[leg].chain[3];
+				vect3_t zero = { {0,0,0} };
 				vect3_t anchor_b;
-				gd_ik_single(hb_0, start, end, &end_anchor, &targ_b, &anchor_b, 20000.f);
+				gd_ik_single(hb_0, start, end, &zero, &targ_b, &anchor_b, 20000.f);
 			}
 		}
+		ik_end_ts = HAL_GetTick();
 
 
 
 
-
-//		for(int m = 0; m < NUM_JOINTS; m++)
+//		for(int m = 0; m < NUM_motor_tS; m++)
 //		{
 //			chain[m].mtn16.i16[0] = 0;
 //		}
 //
-//		for(int m = 0; m < NUM_JOINTS; m++)
+//		for(int m = 0; m < NUM_motor_tS; m++)
 //		{
-//			/*In the main/actual motion loop, only move joints that have responded properly*/
+//			/*In the main/actual motion loop, only move motor_ts that have responded properly*/
 //			if(chain[m].responsive)
 //			{
-//				joint_comm(&chain[m]);
+//				motor_t_comm(&chain[m]);
 //			}
 //		}
 //
@@ -251,7 +264,7 @@ int main(void)
 		{
 			disp_ts = HAL_GetTick() + 10;
 
-			for(int i = 0; i < NUM_JOINTS; i++)
+			for(int i = 0; i < NUM_motor_tS; i++)
 			{
 				payload[i].i32 = (int32_t)(chain[i].q*4096.f);
 			}
@@ -264,13 +277,13 @@ int main(void)
 
 
 
-/*Spoof a normal joint comm, without the overhead.
+/*Spoof a normal motor_t comm, without the overhead.
  * Send a command of 0 torque out, and wait for a
  * response from a matching ID
  *
  * CAN network analysis tool.
  * */
-int check_joint(int id)
+int check_motor_t(int id)
 {
 	can_tx_header.StdId = id;
 	HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, 0, &can_tx_mailbox);
@@ -297,7 +310,7 @@ int check_joint(int id)
 	return -1;
 }
 
-static joint kb_j = {0};
+static motor_t kb_j = {0};
 void can_network_keyboard_discovery(void)
 {
 
@@ -308,20 +321,20 @@ void can_network_keyboard_discovery(void)
 	gl_uart_rx_kb_activity_flag = 0;
 
 	int num_responsive = 0;
-	for(int i = 0; i < NUM_JOINTS; i++)
+	for(int i = 0; i < NUM_motor_tS; i++)
 	{
 		if(chain[i].responsive == 1)
 		{
-			sprintf(gl_print_str, "Joint %d (id = %d) responsive\r\n", i, chain[i].id);
+			sprintf(gl_print_str, "motor_t %d (id = %d) responsive\r\n", i, chain[i].id);
 			print_string(gl_print_str);
 			num_responsive++;
 
 			kb_j.misc_cmd = LED_ON;
 			kb_j.id = chain[i].id;
-			joint_comm_misc(&(kb_j));
+			motor_t_comm_misc(&(kb_j));
 		}
 	}
-	sprintf(gl_print_str, "Discovered %d out of %d expected nodes\r\n", num_responsive, NUM_JOINTS);
+	sprintf(gl_print_str, "Discovered %d out of %d expected nodes\r\n", num_responsive, NUM_motor_tS);
 	print_string(gl_print_str);
 	print_string("Do full network analysis? Y/N\r\n");
 	while(gl_uart_rx_kb_activity_flag == 0);
@@ -334,11 +347,11 @@ void can_network_keyboard_discovery(void)
 	else
 	{
 		num_responsive = 0;
-		print_string("Scanning for responsive motor joints...\r\n");
+		print_string("Scanning for responsive motor motor_ts...\r\n");
 		int num_possible_ids = 1<<11;
 		for(int id = 0; id < num_possible_ids; id++)
 		{
-			int rc = check_joint(id);
+			int rc = check_motor_t(id);
 			if(rc == 0)
 			{
 				sprintf(gl_print_str, "Found node ID: %d\r\n", id);
@@ -418,22 +431,22 @@ void can_network_keyboard_discovery(void)
 				int rc = 0;
 				kb_j.misc_cmd = LED_OFF;
 				kb_j.id = prev_discovery_idx;
-				rc = joint_comm_misc(&(kb_j));
+				rc = motor_t_comm_misc(&(kb_j));
 				stat_word |= rc;
 
 				kb_j.misc_cmd = SET_SINUSOIDAL_MODE;
 				kb_j.id = can_node_discovery_idx;
-				rc = joint_comm_misc(&(kb_j));
+				rc = motor_t_comm_misc(&(kb_j));
 				stat_word |= (rc << 3);
 
 				kb_j.misc_cmd = EN_UART_ENC;
 				kb_j.id = can_node_discovery_idx;
-				rc = joint_comm_misc(&(kb_j));
+				rc = motor_t_comm_misc(&(kb_j));
 				stat_word |= (rc << 1);
 
 				kb_j.misc_cmd = LED_ON;
 				kb_j.id = can_node_discovery_idx;
-				rc = joint_comm_misc(&(kb_j));
+				rc = motor_t_comm_misc(&(kb_j));
 				stat_word |= (rc << 2);
 
 
@@ -445,7 +458,7 @@ void can_network_keyboard_discovery(void)
 			sprintf(gl_print_str, "kbin = %c, id = %d, qenc = %d, raw = 0x%.4X\r\n", uart_cmd, can_node_discovery_idx, (int)(kb_j.q*1000.f), (unsigned int)can_rx_data.ui32[0]);
 			print_string(gl_print_str);
 		}
-		joint_comm(&kb_j);
+		motor_t_comm(&kb_j);
 	}
 
 }
@@ -455,24 +468,24 @@ void blink_motors_in_chain(void)
 {
 	if(HAL_GetTick()>can_tx_ts)
 	{
-		if(led_idx == NUM_JOINTS)
+		if(led_idx == NUM_motor_tS)
 		{
 			rgb_play((rgb_t){0,255,0});
-			for(int i = 0; i < NUM_JOINTS; i++)
+			for(int i = 0; i < NUM_motor_tS; i++)
 				chain[i].misc_cmd = LED_OFF;
 		}
 		else
 		{
 			rgb_play((rgb_t){0,0,0});
-			for(int i = 0; i < NUM_JOINTS; i++)
+			for(int i = 0; i < NUM_motor_tS; i++)
 				chain[i].misc_cmd = LED_OFF;
 		}
 
-		/*Search the leg list for the next valid joint*/
-		for(int jidx = 0; jidx < NUM_JOINTS; jidx++)
+		/*Search the leg list for the next valid motor_t*/
+		for(int jidx = 0; jidx < NUM_motor_tS; jidx++)
 		{
-			led_idx = (led_idx + 1) % (NUM_JOINTS+1);
-			if(led_idx == NUM_JOINTS)
+			led_idx = (led_idx + 1) % (NUM_motor_tS+1);
+			if(led_idx == NUM_motor_tS)
 				can_tx_ts = HAL_GetTick()+700;
 			else
 				can_tx_ts = HAL_GetTick()+500;
@@ -482,15 +495,15 @@ void blink_motors_in_chain(void)
 			}
 		}
 
-		if(led_idx < NUM_JOINTS)
+		if(led_idx < NUM_motor_tS)
 		{
 			chain[led_idx].misc_cmd = LED_ON;
-			joint_comm_misc(&(chain[led_idx]));
+			motor_t_comm_misc(&(chain[led_idx]));
 		}
-		if(prev_led_idx < NUM_JOINTS)
+		if(prev_led_idx < NUM_motor_tS)
 		{
 			chain[prev_led_idx].misc_cmd = LED_OFF;
-			joint_comm_misc(&(chain[prev_led_idx]));
+			motor_t_comm_misc(&(chain[prev_led_idx]));
 		}
 
 		prev_led_idx = led_idx;

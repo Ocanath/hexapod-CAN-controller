@@ -1,5 +1,5 @@
 /*
- * joint.c
+ * motor_t.c
  *
  *  Created on: Aug 21, 2021
  *      Author: Ocanath
@@ -7,17 +7,11 @@
 #include "joint.h"
 #include "trig_fixed.h"
 
-joint chain[NUM_JOINTS] =
+motor_t chain[NUM_motor_tS] =
 {
 		{						//1
 				.id = 38,//24,
-				.frame = 1,
-				.hb_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = -8.8f*DEG_TO_RAD,
 				.mtn16 = {{0}},
-				.qd = 0.f,
 				.ctl = {
 						.kp = 9.f,
 						.ki_div = 377.f,
@@ -29,13 +23,7 @@ joint chain[NUM_JOINTS] =
 		},
 		{						//2
 				.id = 39,//25,
-				.frame = 1,
-				.hb_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = 27.275f*DEG_TO_RAD,
 				.mtn16 = {{0}},
-				.qd = 0.f,
 				.ctl = {
 						.kp = 9.f,
 						.ki_div = 377.f,
@@ -47,79 +35,37 @@ joint chain[NUM_JOINTS] =
 		},
 		{						//0
 				.id = 23,
-				.frame = 1,
-				.hb_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = -325.32539f*DEG_TO_RAD,
 				.mtn16 = {{0}},
-				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
 		{						//3
 				.id = 26,
-				.frame = 1,
-				.hb_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = -113.113f*DEG_TO_RAD,
 				.mtn16 = {{0}},
-				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
 		{						//4
 				.id = 27,
-				.frame = 1,
-				.hb_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = 62.621f*DEG_TO_RAD,
 				.mtn16 = {{0}},
-				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
 		{						//5
 				.id = 28,
-				.frame = 1,
-				.hb_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = -179.179f*DEG_TO_RAD,
 				.mtn16 = {{0}},
-				.qd = 0.,
 				.misc_cmd = LED_OFF
 		},
 		{						//7
 				.id = 21,
-				.frame = 1,
-				.hb_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = -27.27*DEG_TO_RAD,
 				.mtn16 = {{0}},
-				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
 		{						//6
 				.id = 20,
-				.frame = 2,
-				.hb_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = 49.49*DEG_TO_RAD,
 				.mtn16 = {{0}},
-				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
 		{						//7
 				.id = 22,
-				.frame = 1,
-				.hb_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-				.q = 0,
-				.q_offset = 0,
 				.mtn16 = {{0}},
-				.qd = 0.f,
 				.misc_cmd = LED_OFF
 		},
 		{
@@ -149,16 +95,6 @@ joint chain[NUM_JOINTS] =
 		{
 			.id = 32
 		}
-//		{						//8
-//				.id = 32,
-//				.frame = 1,	//frame number will determine how we initialize the link definition and child id
-//				.hb_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-//				.him1_i = {{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}},
-//				.child = NULL,	//it is VERY important to initialize this to NULL. Otherwise your program will explode in a massive disgusting segfault orgy.
-//				.q_offset = -275.275*DEG_TO_RAD,
-//				.tau = {.f32 = {0.f, 0.f} },
-//				.misc_cmd = LED_OFF
-//		}
 };
 
 
@@ -168,9 +104,9 @@ float wrap(float in)
 }
 
 /*
- * Performs misc mode commands. operates on a single joint variable, pass by reference.
+ * Performs misc mode commands. operates on a single motor_t variable, pass by reference.
  */
-int joint_comm_misc(joint * chain)
+int motor_t_comm_misc(motor_t * chain)
 {
 	can_tx_header.StdId = 0x7FF - chain->id;
 	can_tx_data.d[0]=chain->misc_cmd;
@@ -235,7 +171,7 @@ uint32_t get_ts_us(void)
 static int count = 0;
 static int vdiv = 1;
 
-void update_joint_from_can_data(can_payload_t * payload, joint * j)
+void update_motor_t_from_can_data(can_payload_t * payload, motor_t * j)
 {
 	if(j->encoder_mode == EN_UART_ENC)
 	{
@@ -269,19 +205,16 @@ void update_joint_from_can_data(can_payload_t * payload, joint * j)
 			int32_t sth = sin_lookup(j->q16, 30);
 			int32_t cth = cos_lookup(j->q16, 30);
 
-			j->sin_q_float = ((float)sth)/1073741824.f;
-			j->cos_q_float = ((float)cth)/1073741824.f; //convert 30bit scaled value. 1073741824.f = 2^30
-
 			j->sin_q = sth >> 1;	//load sin_q and cos_q radix 29, for 64bit multiplication stability
 			j->cos_q = cth >> 1;
 		}
 
-		j->dq_rotor = (float)(j->dq_rotor16) * 0.062500f;	//dividing by 16 expresses velocity in units of rad/sec
+		//j->dq_rotor = (float)(j->dq_rotor16) * 0.062500f;	//dividing by 16 expresses velocity in units of rad/sec
 	}
 	else
 	{
 		j->q32_rotor = payload->i32[0];
-		j->q = (float)(j->q32_rotor/4096.f);
+		//j->q = (float)(j->q32_rotor/4096.f);
 	}
 
 
@@ -295,12 +228,12 @@ void update_joint_from_can_data(can_payload_t * payload, joint * j)
 
 
 /*
- * Performs normal mode torque/position commands to motors. Operates on a list of joints,
+ * Performs normal mode torque/position commands to motors. Operates on a list of motor_ts,
  * stored in the chain pointer.
  *
  * TODO: make nonblocking timeout, or just do a straight up interrupt version
  */
-int joint_comm(joint * j)
+int motor_t_comm(motor_t * j)
 {
 	can_tx_header.StdId = j->id;
 	HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, j->mtn16.d, &can_tx_mailbox);
@@ -325,7 +258,7 @@ int joint_comm(joint * j)
 				if(can_rx_header.StdId == j->id)
 				{
 					node_responsive = 1;
-					update_joint_from_can_data(&can_rx_data, j);
+					update_motor_t_from_can_data(&can_rx_data, j);
 				}
 				else
 				{
@@ -338,23 +271,23 @@ int joint_comm(joint * j)
 	return (node_responsive) | (timed_out << 1) | (wrong_node << 2);	//return msg of 1 is all good.
 }
 
-void chain_comm(joint * chain, int num_joints)
+void chain_comm(motor_t * chain, int num_motor_ts)
 {
-	for(int i = 0; i < num_joints; i++)
+	for(int i = 0; i < num_motor_ts; i++)
 	{
-		int rc = joint_comm(&chain[i]);
+		int rc = motor_t_comm(&chain[i]);
 //		if(rc != 1)
 //		{
 //			uint8_t timed_out = (rc & (1 << 1)) >> 1;
 //			if(chain[i].responsive == 0 && timed_out == 0)	//means a different node responded
 //			{
-//				for(int j = 0; j < num_joints; j++)
+//				for(int j = 0; j < num_motor_ts; j++)
 //				{
-//					int lki = (j + i) % num_joints;
-//					joint * pj = &chain[lki];
+//					int lki = (j + i) % num_motor_ts;
+//					motor_t * pj = &chain[lki];
 //					if(can_rx_header.StdId == pj->id)
 //					{
-//						update_joint_from_can_data(&can_rx_data,pj);
+//						update_motor_t_from_can_data(&can_rx_data,pj);
 //					}
 //				}
 //			}

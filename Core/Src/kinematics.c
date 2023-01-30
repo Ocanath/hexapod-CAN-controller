@@ -1,53 +1,58 @@
 /*
  * kinematics.c
  *
- *  Created on: Nov 21, 2021
+ *  Created on: Jan 28, 2023
  *      Author: Ocanath Robotman
  */
-#include "kinematics.h"
-#include "sin-math.h"
-#include "trig_fixed.h"
-#include "RS485-master.h"
 
-///*
-//	Copies the contents of one mat4_t to the other. could use memcpy interchangably
-//*/
-//void copy_mat4_t(mat4_t * dest, mat4_t * src)
+
+
+#include "kinematics.h"
+#include "m_mcpy.h"
+
+/*
+	Copies the contents of one mat4_t to the other. could use memcpy interchangably
+*/
+void copy_mat4_t(mat4_t * dest, mat4_t * src)
+{
+	for (int r = 0; r < 4; r++)
+	{
+		for (int c = 0; c < 4; c++)
+		{
+			dest->m[r][c] = src->m[r][c];
+		}
+	}
+}
+
+/*
+* Tell me the xyz and rpy from an input homogeneous transoformation matrix.
+* INPUT: M. Pass by reference (pbr)
+* OUTPUTS:
+*	xyz (pbr)
+*	rpy (pbr)
+*
+* Uses math.h atan2. Is slow and accurate
+*
+*/
+//void get_xyz_rpy(mat4_t* M, vect3_t* xyz, vect3_t * rpy)
 //{
-//	for (int r = 0; r < 4; r++)
-//	{
-//		for (int c = 0; c < 4; c++)
-//		{
-//			dest->m[r][c] = src->m[r][c];
-//		}
-//	}
+//	if (M == NULL || xyz == NULL || rpy == NULL)
+//		return;
+//	double yaw = atan2_approx(M->m[1][0], M->m[0][0]);
+//	double pitch = atan2_approx(-M->m[2][0], sqrt((double)(M->m[2][1] * M->m[2][1] + M->m[2][2] * M->m[2][2])));
+//	double roll = atan2_approx(M->m[2][1], M->m[2][2]);
+//	h_origin_pbr(M, xyz);
 //}
 
-void rpy_to_mat4(mat4_t * m, vect3 rpy, vect3 xyz)
+mat4_t get_rpy_xyz_htmatrix(vect3_t* xyz, vect3_t* rpy)
 {
-	mat4_t tmp = Hz(rpy[2]);
-	tmp = mat4_t_mult(tmp, Hy(rpy[1]));
-	tmp = mat4_t_mult(tmp, Hz(rpy[0]));
-	for(int r = 0; r < 3; r++)
-		tmp.m[r][3] = xyz[r];
-	m_mcpy(m, &tmp,sizeof(mat4_t));
+	mat4_t Hlink = Hz(rpy->v[2]);
+	Hlink = mat4_t_mult(Hlink, Hy(rpy->v[1]));
+	Hlink = mat4_t_mult(Hlink, Hx(rpy->v[0]));	//obtained Hrpy
+	for (int r = 0; r < 3; r++)
+		Hlink.m[r][3] = xyz->v[r];
+	return Hlink;
 }
-
-void dh_to_mat4(mat4_t * m, dh_entry * dh)
-{
-	float sin_alpha = sin_fast(dh->alpha);
-	float cos_alpha = cos_fast(dh->alpha);
-	mat4_t tmp = (mat4_t){
-		{
-			{1,		0,				0,				dh->a},
-			{0,		cos_alpha,		-sin_alpha,		0},
-			{0,		sin_alpha,		cos_alpha,		dh->d},
-			{0,		0,				0,				1}
-		}
-	};
-	m_mcpy(m, &tmp,sizeof(mat4_t));
-}
-
 
 /*
 *	Initialize links with urdf-style inputs (xyz and roll pitch yaw)
@@ -56,16 +61,12 @@ void init_forward_kinematics_urdf(joint* j, vect3_t * xyz, vect3_t * rpy, int nu
 {
 	for(int i = 1; i <= num_joints; i++)
 	{
-		mat4_t Hlink = Hz(rpy[i].v[2]);
-		Hlink = mat4_t_mult(Hlink, Hy(rpy[i].v[1]));
-		Hlink = mat4_t_mult(Hlink, Hx(rpy[i].v[0]));	//obtained Hrpy
-		for(int r = 0; r < 3; r++)
-			Hlink.m[r][3] = xyz[i].v[r];
-		m_mcpy(&j[i].h_link, &Hlink,sizeof(mat4_t));	//load result into joint matrix
-		m_mcpy(&j[i].him1_i, &j[i].h_link,sizeof(mat4_t));	//initial q=0 loading for him1_i
+		mat4_t Hlink = get_rpy_xyz_htmatrix(&xyz[i], &rpy[i]);
+		copy_mat4_t(&j[i].h_link, &Hlink);	//load result into joint matrix
+		copy_mat4_t(&j[i].him1_i, &j[i].h_link);	//initial q=0 loading for him1_i
 		j[i - 1].child = &j[i];	//load child reference in case we want to traverse this as a singly linked list
 	}
-	m_mcpy(&j[0].h_link, &j[0].hb_i,sizeof(mat4_t));
+	copy_mat4_t(&j[0].h_link, &j[0].hb_i);
 	j[0].q = 0;
 	j[num_joints].child = NULL;
 	for (int i = 1; i <= num_joints; i++)
@@ -88,7 +89,7 @@ void init_forward_kinematics_dh(joint* j, const dh_entry* dh, int num_joints)
 		float sin_alpha = sin_fast(dh[i].alpha);
 		float cos_alpha = cos_fast(dh[i].alpha);
 		/*Precomputed Hd*Ha*Halpha*/
-		j[i].h_link = (mat4_t){
+		mat4_t link = {
 			{
 				{1,		0,				0,				dh[i].a},
 				{0,		cos_alpha,		-sin_alpha,		0},
@@ -96,19 +97,36 @@ void init_forward_kinematics_dh(joint* j, const dh_entry* dh, int num_joints)
 				{0,		0,				0,				1}
 			}
 		};
-		m_mcpy(&j[i].him1_i, &j[i].h_link,sizeof(mat4_t));	//htheta of 0 is the identity
+		m_mcpy(&j[i].h_link, &link, sizeof(mat4_t));
+		copy_mat4_t(&j[i].him1_i, &j[i].h_link);	//htheta of 0 is the identity
 		j[i - 1].child = &j[i];
 	}
-	m_mcpy(&j[0].h_link, &j[0].hb_i,sizeof(mat4_t));
+	copy_mat4_t(&j[0].h_link, &j[0].hb_i);
 	j[0].q = 0;
 	j[num_joints].child = NULL;	//initialize the last node in the linked list to NULL
 	for (int i = 1; i <= num_joints; i++)
 		mat4_t_mult_pbr(&j[i - 1].hb_i, &j[i].him1_i, &j[i].hb_i);
 }
+
+/*pre-loads all sin_q and cos_q for the chain*/
+void load_q(joint* chain_start)
+{
+	joint* j = chain_start;
+	while (j != NULL)
+	{
+		j->sin_q = sin_fast(j->q);
+		j->cos_q = cos_fast(j->q);
+
+		j = j->child;
+	}
+}
+
 /*
 Do forward kinematics on a singly linked list of joints!
 Inputs:
-		j: the root of the chain
+		f1_joint: the first joint of the chain. I.e. the joint that relates frame 0 to frame 1
+		hb_0: the matrix which relates a rigid base/reference frame to frame 0. Used for initial condition, and
+				for robots with multiple chains.
 Outputs:
 		updates him1_i and hb_i of every element in the list
 
@@ -117,22 +135,19 @@ an embedded system, dynamic memory and recursion are not allowed
 (both of which would be quite nice here; i.e. we can implement this as a dfs
 type recursive run through the tree) so we'll have to operate on the tree
 in a rigid structure (i.e. hard-coding what would normally be recursive)
-
-//this could be optimized even further by using fixed point
-//floating point version could be optimized by using multiply-accumulate
-//fpu instructions directly
-
 */
 void forward_kinematics(mat4_t * hb_0, joint* f1_joint)
 {
-	if(f1_joint == NULL)		//catch null pointer case for now, just to be sure
+	if (f1_joint == NULL)
 		return;
 
-	joint* j = f1_joint;
+	joint * j = f1_joint;
 	while(j != NULL)
 	{
-		float cth = j->cos_q_float;
-		float sth = j->sin_q_float;
+		//float sth = (float)sin((double)j->q);
+		//float cth = (float)cos((double)j->q);
+		float sth = j->sin_q;
+		float cth = j->cos_q;
 
 		mat4_t* r = &j->h_link;
 		mat4_t * him1_i = &j->him1_i;	//specify lookup ptr first for faster loading
@@ -155,14 +170,30 @@ void forward_kinematics(mat4_t * hb_0, joint* f1_joint)
 
 	joint * parent = f1_joint;
 	j = f1_joint;
-	ht_mat4_mult_pbr(hb_0, &j->him1_i, &j->hb_i);	//load hb_1.		hb_0 * h0_1 = hb_1
+	mat4_t_mult_pbr(hb_0, &j->him1_i, &j->hb_i);	//load hb_1.		hb_0 * h0_1 = hb_1
 	while (j->child != NULL)
 	{
 		j = j->child;
-		ht_mat4_mult_pbr(&parent->hb_i, &j->him1_i, &j->hb_i);
+		mat4_t_mult_pbr(&parent->hb_i, &j->him1_i, &j->hb_i);
 		parent = j;
 	}
 }
+
+/*
+	Traverse linked list and load torques into a list of equal size.
+
+	Dangerous; could overrun if the linked list is not set up properly
+*/
+void calc_taulist(joint* chain_start, vect3_t* f)
+{
+	joint* j = chain_start;
+	while (j != NULL)
+	{
+		j->tau_static = vect_dot(&(j->Si.v[3]), f->v, 3);	//remove Si radix to restore original 'f' radix
+		j = j->child;
+	}
+}
+
 
 /*
 * Arguments:
@@ -245,154 +276,14 @@ void calc_J_point(mat4_t* hb_0, joint * chain_start, vect3_t * point_b)
 }
 
 
-/*Dot product. floating point*/
-float vect_dot(float* v1, float* v2, int n)
-{
-	float res = 0.f;
-	for (int i = 0; i < n; i++)
-	{
-		res += v1[i] * v2[i];
-	}
-	return res;
-}
-
-/*
-	Traverse linked list and load torques into a list of equal size.
-
-	Dangerous; could overrun if the linked list is not set up properly
-*/
-void calc_taulist(joint* chain_start, vect3_t* f)
-{
-	joint* j = chain_start;
-	while (j != NULL)
-	{
-		j->tau_static = vect_dot(&(j->Si.v[3]), f->v, 3);	//remove Si radix to restore original 'f' radix
-		j = j->child;
-	}
-}
-
-
-float abs_f(float v)
-{
-	if(v < 0.0f)
-		v = -v;
-	return v;
-}
-
-
-float Q_rsqrt(float number)
-{
-	u32_fmt_t conv;
-	conv.f32 = number;
-	conv.u32 = 0x5f3759df - (conv.u32 >> 1);
-	conv.f32 *= 1.5F - (number * 0.5F * conv.f32 * conv.f32);
-	return conv.f32;
-}
-
-
-/**/
-float inverse_vect_mag(float* v, int n)
-{
-	float v_dot_v= 0.f;
-	for (int i = 0; i < n; i++)
-		v_dot_v += v[i] * v[i];
-	return Q_rsqrt(v_dot_v);
-}
-
-/**/
-void vect_normalize(float* v, int n)
-{
-	float inv_mag = inverse_vect_mag(v,n);
-	for (int i = 0; i < n; i++)
-	{
-		v[i] = v[i] * inv_mag;
-	}
-}
-
-
-int gd_ik_single(mat4_t* hb_0, joint* start, joint* end, vect3_t* anchor_end, vect3_t* targ_b, vect3_t* anchor_b, float epsilon_divisor)	//num anchors?
-{
-	if (hb_0 == NULL || start == NULL || end == NULL || anchor_end == NULL || targ_b == NULL || anchor_b == NULL)
-		return 0;	//blah
-
-	joint* j;
-	int solved = 0;
-	int cycles = 0;
-	while (solved == 0)
-	{
-		//do forward kinematics
-		forward_kinematics(hb_0, start);
-		htmatrix_vect3_mult(&end->hb_i, anchor_end, anchor_b);	//shift rotation out because only rotational components are added for a ht-multiply
-		calc_J_point(hb_0, start, anchor_b);
-
-		//printf("targ: [%d,%d,%d], ref: [%d,%d,%d]\r\n", o_targ_b->v[0], o_targ_b->v[1], o_targ_b->v[2], o_anchor_b->v[0], o_anchor_b->v[1], o_anchor_b->v[2]);
-		//print_vect_mm("targ: ", o_targ_b, 16, "");
-		//print_vect_mm("ref: ", o_anchor_b, 16, "\r\n");
-
-		//get vector pointing from the anchor point on the robot to the target. call it 'f'. Unscaled.
-		vect3_t f;
-		for (int i = 0; i < 3; i++) //this can have much lower resolution than tau.  high res tau is important
-			f.v[i] = (targ_b->v[i] - anchor_b->v[i]) / 16.f;	//step down from 16 to 12 bit reso for force vector
-		calc_taulist(start, &f);	//removing an n_si (from f) yields tau in radix 16
-
-		//apply a scaled torque vector to the chain structure via. sin and cosine vectors
-		vect3_t z = {{ 0.f, 0.f, 1.f }};
-		solved = 1;
-		j = start;
-		while (j != NULL)
-		{
-			vect3_t vq = {{ j->cos_q_float, j->sin_q_float, 0 }};	//create sin-cos structure
-
-			vect3_t tangent;
-			cross_pbr(&z, &vq, &tangent);		//obtain the tangent vector in the xy plane. it is normalized
-
-			vect3_t vq_new;	//will contain the result of ~q+epsilon for our gradient descent
-
-			//Scale the tangent vector and add it to the original vq vector
-			for (int r = 0; r < 3; r++)
-			{
-				float tmp = (tangent.v[r] * j->tau_static) / epsilon_divisor;
-				vq_new.v[r] = tmp + vq.v[r];
-
-				if (abs_f(tmp) > 0.0001f)
-					solved = 0;
-			}
-
-			vect_normalize(vq_new.v, 3);
-
-			j->cos_q_float = vq_new.v[0];
-			j->sin_q_float = vq_new.v[1];
-
-			j = j->child;
-		}
-		cycles++;
-	}
-
-	j = start;
-	while (j != NULL)
-	{
-		j->q = atan2_approx(j->sin_q_float, j->cos_q_float);
-		j = j->child;
-	}
-	return cycles;
-}
-
-
-vect6_t calc_w_v(joint * chain, vect3_t * w, vect3_t * v)
+vect6_t calc_w_v(kinematic_chain * chain, vect3_t * w, vect3_t * v)
 {
 	vect6_t ret;
 	int i;
 	for (i = 0; i < 6; i++)
 		ret.v[i] = 0;			//initialize the sum
-
-	joint * j = chain;
-	while(j->child != NULL)	//traverse singly linked list. discard the starting element
-	{
-		j = j->child;
-		for(int r = 0; r < 6; r++)
-			ret.v[r] += j->Si.v[r] * j->dq_rotor;
-	}
-
+	for (i = 1; i < chain->num_frames; i++)
+		ret = vect6_add(ret, vect6_scale(chain->j[i].Si, chain->j[i].dq));
 	w->v[0] = ret.v[0];
 	w->v[1] = ret.v[1];
 	w->v[2] = ret.v[2];
@@ -402,47 +293,35 @@ vect6_t calc_w_v(joint * chain, vect3_t * w, vect3_t * v)
 	return ret;
 }
 
-/**/
 void calc_tau(joint * j, int num_joints, vect6_t f, float * tau)
 {
-
 	int i;
 	for (i = 1; i <= num_joints; i++)
-	{
-		tau[i] = 0.f;
-		for(int r = 0; r < 6; r++)
-			tau[i] += j[i].Si.v[r] * f.v[r];
-
-	}
+		tau[i] = vect_dot(j[i].Si.v, f.v, 6);
 }
-/*Faster, only valid for rotational. eliminate the translational
- * component of the Si vector, which featherstone puts in the bottom
- * */
+
 void calc_tau3(joint * j, int num_joints, vect3_t * f, float* tau)
 {
 	for (int i = 1; i <= num_joints; i++)
 	{
-		tau[i] = 0.f;
+		float dp = 0.f;
 		for (int r = 0; r < 3; r++)
-			tau[i] += j[i].Si.v[r + 3] * f->v[r];
+			dp += j[i].Si.v[r + 3] * f->v[r];
+		tau[i] = dp;
 	}
 }
 
 /*pass by reference htmatrix (special subset of mat4_t) and 3 vector)*/
 void htmatrix_vect3_mult(mat4_t* m, vect3_t* v, vect3_t* ret)
 {
-	int rsize = 3; int vsize = 4;
-	int r, i;
-	for (r = 0; r < rsize; r++)
+	for (int r = 0; r < 3; r++)
 	{
 		float tmp = 0;
-		for (i = 0; i < vsize; i++)
+		for (int i = 0; i < 3; i++)
 		{
-			if (i < 3)
-				tmp = tmp + m->m[r][i] * v->v[i];
-			if (i == 3)
-				tmp = tmp + m->m[r][i];
+			tmp += m->m[r][i] * v->v[i];
 		}
+		tmp += m->m[r][3];
 		ret->v[r] = tmp;
 	}
 }
@@ -458,6 +337,17 @@ vect3_t h_origin(mat4_t h)
 		ret.v[i] = h.m[i][3];
 	return ret;
 }
+
+/*
+helper function for extracting the origin of a ht matrix
+*/
+void h_origin_pbr(mat4_t * h, vect3_t * xyz)
+{
+	int i;
+	for (i = 0; i < 3; i++)
+		xyz->v[i] = h->m[i][3];
+}
+
 /*
 helper function for extracting the origin of a ht matrix
 in the form of a 4 vector
@@ -512,4 +402,80 @@ mat4_t quat_to_mat4_t(vect4_t quat, vect3_t origin)
 		m.m[3][c] = 0;
 	m.m[3][3] = 1.0f;
 	return m;
+}
+
+
+float abs_f(float v)
+{
+	if(v < 0.0f)
+		v = -v;
+	return v;
+}
+
+
+int gd_ik_single(mat4_t* hb_0, joint* start, joint* end, vect3_t* anchor_end, vect3_t* targ_b, vect3_t* anchor_b, float epsilon_divisor)	//num anchors?
+{
+	if (hb_0 == NULL || start == NULL || end == NULL || anchor_end == NULL || targ_b == NULL || anchor_b == NULL)
+		return 0;	//blah
+
+	joint* j;
+	int solved = 0;
+	int cycles = 0;
+	while (solved == 0)
+	{
+		//do forward kinematics
+		forward_kinematics(hb_0, start);
+		htmatrix_vect3_mult(&end->hb_i, anchor_end, anchor_b);	//shift rotation out because only rotational components are added for a ht-multiply
+		calc_J_point(hb_0, start, anchor_b);
+
+		//printf("targ: [%d,%d,%d], ref: [%d,%d,%d]\r\n", o_targ_b->v[0], o_targ_b->v[1], o_targ_b->v[2], o_anchor_b->v[0], o_anchor_b->v[1], o_anchor_b->v[2]);
+		//print_vect_mm("targ: ", o_targ_b, 16, "");
+		//print_vect_mm("ref: ", o_anchor_b, 16, "\r\n");
+
+		//get vector pointing from the anchor point on the robot to the target. call it 'f'. Unscaled.
+		vect3_t f;
+		for (int i = 0; i < 3; i++) //this can have much lower resolution than tau.  high res tau is important
+			f.v[i] = (targ_b->v[i] - anchor_b->v[i]) / 16.f;	//step down from 16 to 12 bit reso for force vector
+		calc_taulist(start, &f);	//removing an n_si (from f) yields tau in radix 16
+
+		//apply a scaled torque vector to the chain structure via. sin and cosine vectors
+		vect3_t z = {{ 0.f, 0.f, 1.f }};
+		solved = 1;
+		j = start;
+		while (j != NULL)
+		{
+			vect3_t vq = {{ j->cos_q, j->sin_q, 0 }};	//create sin-cos structure
+
+			vect3_t tangent;
+			cross_pbr(&z, &vq, &tangent);		//obtain the tangent vector in the xy plane. it is normalized
+
+			vect3_t vq_new;	//will contain the result of ~q+epsilon for our gradient descent
+
+			//Scale the tangent vector and add it to the original vq vector
+			for (int r = 0; r < 3; r++)
+			{
+				float tmp = (tangent.v[r] * j->tau_static) / epsilon_divisor;
+				vq_new.v[r] = tmp + vq.v[r];
+
+				if (abs_f(tmp) > 0.000001f)
+					solved = 0;
+			}
+
+			vect_normalize(vq_new.v, 3);
+
+			j->cos_q = vq_new.v[0];
+			j->sin_q = vq_new.v[1];
+
+			j = j->child;
+		}
+		cycles++;
+	}
+
+	j = start;
+	while (j != NULL)
+	{
+		j->q = atan2_approx(j->sin_q, j->cos_q);
+		j = j->child;
+	}
+	return cycles;
 }

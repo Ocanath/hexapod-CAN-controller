@@ -1,12 +1,12 @@
 /*
- * joint.h
+ * motor_t.h
  *
  *  Created on: Feb 12, 2021
  *      Author: Ocanath Robotman
  */
 
-#ifndef INC_JOINT_H_
-#define INC_JOINT_H_
+#ifndef INC_motor_t_H_
+#define INC_motor_t_H_
 #include "init.h"
 #include "sin-math.h"
 #include "CAN.h"
@@ -15,7 +15,7 @@
 #define RAD_TO_DEG	57.2957795
 #define DEG_TO_RAD	0.0174532925f
 
-#define NUM_JOINTS 18
+#define NUM_motor_tS 18
 
 enum {
 	CALC_ALIGN_OFFSET = 0x1,
@@ -73,51 +73,27 @@ typedef struct ctl_params_t
 	float tau_sat;
 }ctl_params_t;
 
-typedef struct joint
+typedef struct motor_t
 {
-	uint16_t id;	//CAN node id. ID of the joint.
-	int frame;		//kinematic frame joint belongs to. Not particularly necessary?
-
-	//kinematics things
-	mat4_t hb_i;
-	mat4_t him1_i;
-	mat4_t h_link;
-	mat3_t InertiaTensor;
-	vect6_t Si;			//vector corresponding to the i'th column of the jacobian matrix. Si*q(i) = vi, where vi is the ith's joint's contribution to the total chain velocity in frame 0
-	struct joint * child;
-
-	//fixedpoint kinematics things
-	mat4_32b_t h32_b_i;
-	mat4_32b_t h32_im1_i;
-	mat4_32b_t h32_link;
+	uint16_t id;	//CAN node id. ID of the motor_t.
+	struct motor_t * child;
 
 	//Delivered to the motor. Velocity or torque.
 	can_payload_t mtn16;
 
 	//Measured quantites, delivered over can
-	float q;
 	int32_t q32_rotor; 	//POSSIBLE THAT THIS IS NOT UPDATDED: 32bit rotor position (overridden by aenc)
 	int16_t q16;
-	float dq_rotor;
 	int16_t dq_rotor16;
-	float iq_meas;		//motor torque, measured
+
 	//Computed once per new value and saved in the wrapper structure for speed
 	int32_t sin_q;
 	int32_t cos_q;
-	float sin_q_float;
-	float cos_q_float;
-
-	//Mapping from real to idealized for encoder
-	float q_offset;	//track the phase offset present in the encoder signal
-	float gear_ratio;	//rotor TO output. i.e. 16.f for our hexapod
 
 	//calculation of measured output shaft angle velocity. We estimate not the motor
-	float dq_output;	//estimated
 	int16_t prev_q16;	//16bit loaded previous q, for fast unwrapping in fixed point angles
 	uint32_t ts_dq;	//timestamp associated with last recieved sample of q
 
-	//direct angular position control params. not necessarily used
-	float qd;
 	ctl_params_t ctl;
 
 	uint8_t misc_cmd;
@@ -125,18 +101,22 @@ typedef struct joint
 	uint8_t encoder_mode;
 	uint8_t control_mode;
 
-	float tau_static;	//used for internal model gd IK
-
 	uint8_t responsive;	//flag to indicate whether successful communication to this ID has been verified (through a 'heartbeat' motor instruction')
-}joint;
 
-extern joint chain[NUM_JOINTS];
+	float q;
+	float iq_meas;
+	float dq_output;
+	float q_offset;
+
+}motor_t;
+
+extern motor_t chain[NUM_motor_tS];
 
 float wrap(float in);
-int joint_comm_misc(joint * chain);
-int joint_comm(joint * j);
-void chain_comm(joint * chain, int num_joints);
+int motor_t_comm_misc(motor_t * chain);
+int motor_t_comm(motor_t * j);
+void chain_comm(motor_t * chain, int num_motor_ts);
 uint32_t get_ts_us(void);
 int32_t wrap_fixed(int32_t in, uint32_t k);
 
-#endif /* INC_JOINT_H_ */
+#endif /* INC_motor_t_H_ */

@@ -6,7 +6,7 @@
  */
 #include "vect.h"
 #include "sin-math.h"
-
+#include "RS485-master.h"
 /*
 	Multiplies two mat4_t matrices, returns an entire structure. More wasteful
 */
@@ -139,4 +139,54 @@ vect3_t vect3_scale(vect3_t v_a, float scale)
 	for (i = 0; i<3; i++)
 		ret.v[i] = v_a.v[i] * scale;
 	return ret;
+}
+
+/*Multiples vector v_a by scalar scale*/
+vect6_t vect6_scale(vect6_t v_a, float scale)
+{
+	vect6_t ret; int i;
+	for (i = 0; i<6; i++)
+		ret.v[i] = v_a.v[i] * scale;
+	return ret;
+}
+
+
+float Q_rsqrt(float number)
+{
+	u32_fmt_t conv;
+	conv.f32 = number;
+	conv.u32 = 0x5f3759df - (conv.u32 >> 1);
+	conv.f32 *= 1.5F - (number * 0.5F * conv.f32 * conv.f32);
+	return conv.f32;
+}
+
+
+/**/
+float inverse_vect_mag(float* v, int n)
+{
+	float v_dot_v= 0.f;
+	for (int i = 0; i < n; i++)
+		v_dot_v += v[i] * v[i];
+	return Q_rsqrt(v_dot_v);
+}
+
+/**/
+void vect_normalize(float* v, int n)
+{
+	float inv_mag = inverse_vect_mag(v,n);
+	for (int i = 0; i < n; i++)
+	{
+		v[i] = v[i] * inv_mag;
+	}
+}
+
+/*Dot product. floating point*/
+float vect_dot(float* v1, float* v2, int n)
+{
+	float res = 0.f;
+	for (int i = 0; i < n; i++)
+	{
+		res += v1[i] * v2[i];
+	}
+	return res;
 }
