@@ -92,4 +92,8 @@ mat4_32b_t Hy_nb(int32_t angle, int n);
 mat4_32b_t Hx_nb(int32_t angle, int n);
 mat4_32b_t Hz_nb(int32_t angle, int n);
 
+void ht_inverse_ptr(mat4_t * hin, mat4_t * hout);
+
+float Q_rsqrt(float number);
+
 #endif /* INC_VECT_H_ */

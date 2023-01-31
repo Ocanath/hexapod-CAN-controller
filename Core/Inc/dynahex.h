@@ -25,5 +25,6 @@ typedef struct dynahex_t
 
 void init_dynahex_kinematics(dynahex_t* h);
 void forward_kinematics_dynahexleg(dynahex_t* h);
+void ik_closedform_hexapod(mat4_t * hb_0, joint * start, vect3_t * targ_b);
 
 #endif // !DYNAHEX_H

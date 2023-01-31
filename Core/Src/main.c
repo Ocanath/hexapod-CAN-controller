@@ -232,10 +232,11 @@ int main(void)
 
 				mat4_t* hb_0 = &hexapod.leg[leg].chain[0].him1_i;
 				joint* start = &hexapod.leg[leg].chain[1];
-				joint* end = &hexapod.leg[leg].chain[3];
-				vect3_t zero = { {0,0,0} };
-				vect3_t anchor_b;
-				gd_ik_single(hb_0, start, end, &zero, &targ_b, &anchor_b, 20000.f);
+				//joint* end = &hexapod.leg[leg].chain[3];
+				//vect3_t zero = { {0,0,0} };
+				//vect3_t anchor_b;
+				//gd_ik_single(hb_0, start, end, &zero, &targ_b, &anchor_b, 20000.f);
+				ik_closedform_hexapod(hb_0, start, &targ_b);
 			}
 		}
 		ik_end_ts = HAL_GetTick();
