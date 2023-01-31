@@ -64,7 +64,7 @@ float dist_vect3(vect3_t * p0, vect3_t * p1)
 		sum_sq += (double)tmp;
 	}
 	//return (float)(sqrt(sum_sq));
-	return 1.f/Q_rsqrt(sum_sq);
+	return asm_sqrt(sum_sq);
 }
 
 /*
@@ -91,7 +91,7 @@ uint8_t get_intersection_circles(vect3_t * o0, float r0, vect3_t * o1, float r1,
 
 	// solve for h
 	float h_sq = r0_sq - a * a;
-	float h = 1.f/Q_rsqrt(h_sq);
+	float h = asm_sqrt(h_sq);
 
 	float one_by_d = 1.f / d;
 	// find p2
@@ -134,8 +134,7 @@ void ik_closedform_hexapod(mat4_t * hb_0, joint * start, vect3_t * targ_b)
 	 */
 	vect3_t targ_0_offset;
 	vect3_t z = { {0, 0, 1} };
-	cross_pbr(&targ_0, &z, &targ_0_offset);
-	vect_normalize(targ_0_offset.v, 3);
+	cross_pbr(&targ_0, &z, &targ_0_offset);	vect_normalize(targ_0_offset.v, 3);
 	for (int i = 0; i < 3; i++)
 		targ_0_offset.v[i] *= -7.5f;	//the y offset when the arm is in q={0,0,0}
 

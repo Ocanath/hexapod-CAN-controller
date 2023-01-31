@@ -67,7 +67,12 @@ typedef struct vect6_32b_t
 	vect6_32b v;
 }vect6_32b_t;
 
-
+inline float asm_sqrt(float op1)
+{
+	float result;
+	asm volatile("vsqrt.f32 %0, %1" : "=w" (result) : "w" (op1) );
+	return result;
+}
 
 mat4_t mat4_t_mult(mat4_t m1, mat4_t m2);
 void mat4_t_mult_pbr(mat4_t * m1, mat4_t * m2, mat4_t * ret);
