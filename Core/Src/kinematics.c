@@ -457,7 +457,7 @@ int gd_ik_single(mat4_t* hb_0, joint* start, joint* end, vect3_t* anchor_end, ve
 				float tmp = (tangent.v[r] * j->tau_static) / epsilon_divisor;
 				vq_new.v[r] = tmp + vq.v[r];
 
-				if (abs_f(tmp) > 0.000001f)
+				if (abs_f(tmp) > 0.001f)
 					solved = 0;
 			}
 

@@ -210,7 +210,7 @@ int main(void)
 
 
 //			int leg = 0;
-			for(int leg = 0; leg < 3; leg++)
+			for(int leg = 0; leg < NUM_LEGS; leg++)
 			{
 				mat4_t lrot = Hz((TWO_PI / 6.f) * (float)leg);
 				vect3_t o_motion_b = {{ 270.f,0.f,-270.f }};
@@ -243,30 +243,42 @@ int main(void)
 
 
 
-//		for(int m = 0; m < NUM_motor_tS; m++)
-//		{
-//			chain[m].mtn16.i16[0] = 0;
-//		}
-//
-//		for(int m = 0; m < NUM_motor_tS; m++)
-//		{
-//			/*In the main/actual motion loop, only move motor_ts that have responded properly*/
-//			if(chain[m].responsive)
-//			{
-//				motor_t_comm(&chain[m]);
-//			}
-//		}
-//
-//		blink_motors_in_chain();
+		for(int m = 0; m < NUM_motor_tS; m++)
+		{
+			chain[m].mtn16.i16[0] = 0;
+		}
+
+		for(int m = 0; m < NUM_motor_tS; m++)
+		{
+			/*In the main/actual motion loop, only move motor_ts that have responded properly*/
+			if(chain[m].responsive)
+			{
+				motor_t_comm(&chain[m]);
+			}
+		}
+
+		blink_motors_in_chain();
 
 
 		if(HAL_GetTick() > disp_ts)
 		{
 			disp_ts = HAL_GetTick() + 10;
 
-			for(int i = 0; i < NUM_motor_tS; i++)
+			//for(int i = 0; i < NUM_motor_tS; i++)
+			//{
+				//payload[i].i32 = (int32_t)(chain[i].q*4096.f);
+				//payload[i].i32 = chain[i].q32_rotor;
+			//}
+
+			int pld_idx = 0;
+			for(int leg = 0; leg < NUM_LEGS; leg++)
 			{
-				payload[i].i32 = (int32_t)(chain[i].q*4096.f);
+				joint * j = &hexapod.leg[leg].chain[1];
+				for(int i = 0; i < 3; i++)
+				{
+					payload[pld_idx++].i32 = (int32_t)(j->q*4096.f);
+					j = j->child;
+				}
 			}
 			payload[18].u32 = fletchers_checksum32((uint32_t*)payload, 18);
 
