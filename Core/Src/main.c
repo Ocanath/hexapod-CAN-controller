@@ -77,6 +77,38 @@ void buffer_data(uint8_t * d, int size_d, uint8_t * buf, int * bidx)
 }
 
 
+void send_i32_val(motor_t * m, uint8_t header, int32_t val)
+{
+	int bkp = can_tx_header.DLC;
+	can_tx_header.DLC = 5;
+
+	m->misc_cmd = header;
+
+	m->mtn16.d[0] = header;	//redundant
+	u32_fmt_t fmt;
+	fmt.i32 = val;
+	for(int i = 0; i < sizeof(int32_t); i++)
+	{
+		m->mtn16.d[i+1] = fmt.u8[i];
+	}
+	motor_t_comm_misc(m);
+
+	can_tx_header.DLC = bkp;
+}
+
+void send_u8_val(motor_t * m, uint8_t header, uint8_t val)
+{
+	int bkp = can_tx_header.DLC;
+	can_tx_header.DLC = 2;
+
+	m->misc_cmd = header;
+
+	m->mtn16.d[0] = header;	//redundant
+	m->mtn16.d[1] = val;
+	motor_t_comm_misc(m);
+
+	can_tx_header.DLC = bkp;
+}
 
 
 void blink_motors_in_chain(void);
@@ -181,7 +213,19 @@ int main(void)
 	m_mcpy(&chain[0].ctl, &template_ctl,sizeof(ctl_params_t));
 	m_mcpy(&chain[1].ctl, &template_ctl,sizeof(ctl_params_t));
 
+	for(int i = 0; i < 2; i++)
+	{
+		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KP_VALUE, 3000);
+		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KP_RADIX, 0);
+		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KI_VALUE, 444);
+		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KI_RADIX, 10);
+		send_i32_val(&chain[i], CHANGE_PCTL_VQ_XSAT, 1500);
+		send_i32_val(&chain[i], CHANGE_PCTL_VQ_OUTSAT, 1500);
+		send_u8_val(&chain[i], CHANGE_PCTL_VQ_OUT_RSHIFT, 12);
 
+		send_u8_val(&chain[i], SET_PCTL_VQ_MODE, 0);
+		chain[i].control_mode = SET_PCTL_VQ_MODE;
+	}
 
 	u32_fmt_t payload[19] = {0};
 
@@ -253,16 +297,22 @@ int main(void)
 		{
 			chain[m].mtn16.i16[0] = 0;
 		}
+
 		{
-			float e = wrap_2pi(hexapod.leg[0].chain[1].q - chain[0].q);
-			float vq = ctl_PI(e, &chain[0].ctl);
-			chain[0].mtn16.i16[0] = (int16_t)vq;
+			chain[0].mtn16.i32[0] = (int32_t)(hexapod.leg[0].chain[1].q*16.f*4096.f);
+			chain[1].mtn16.i32[0] = (int32_t)(hexapod.leg[0].chain[2].q*16.f*4096.f);
 		}
-		{
-			float e = wrap_2pi(hexapod.leg[0].chain[2].q - chain[1].q);
-			float vq = ctl_PI(e, &chain[1].ctl);
-			chain[1].mtn16.i16[0] = (int16_t)vq;
-		}
+
+//		{
+//			float e = wrap_2pi(hexapod.leg[0].chain[1].q - chain[0].q);
+//			float vq = ctl_PI(e, &chain[0].ctl);
+//			chain[0].mtn16.i16[0] = (int16_t)vq;
+//		}
+//		{
+//			float e = wrap_2pi(hexapod.leg[0].chain[2].q - chain[1].q);
+//			float vq = ctl_PI(e, &chain[1].ctl);
+//			chain[1].mtn16.i16[0] = (int16_t)vq;
+//		}
 
 		for(int m = 0; m < NUM_motor_tS; m++)
 		{
@@ -278,7 +328,7 @@ int main(void)
 
 		if(HAL_GetTick() > disp_ts)
 		{
-			disp_ts = HAL_GetTick() + 15;
+			disp_ts = HAL_GetTick() + 10;
 
 			//for(int i = 0; i < NUM_motor_tS; i++)
 			//{
@@ -296,8 +346,8 @@ int main(void)
 					j = j->child;
 				}
 			}
-			payload[0].i32 = (int32_t)(chain[0].q*4096.f);
-			payload[1].i32 = (int32_t)(chain[1].q*4096.f);
+			payload[0].i32 = (int32_t)(chain[0].q*4096.f/16.f);
+			payload[1].i32 = (int32_t)(chain[1].q*4096.f/16.f);
 
 			payload[18].u32 = fletchers_checksum32((uint32_t*)payload, 18);
 

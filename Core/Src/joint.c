@@ -109,8 +109,8 @@ float wrap(float in)
 int motor_t_comm_misc(motor_t * chain)
 {
 	can_tx_header.StdId = 0x7FF - chain->id;
-	can_tx_data.d[0]=chain->misc_cmd;
-	HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, can_tx_data.d, &can_tx_mailbox);
+	chain->mtn16.d[0]=chain->misc_cmd;
+	HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, chain->mtn16.d, &can_tx_mailbox);
 
 	for(uint32_t exp_ts = HAL_GetTick()+1; HAL_GetTick() < exp_ts;)
 	{
