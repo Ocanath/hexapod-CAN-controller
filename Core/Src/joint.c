@@ -118,7 +118,7 @@ int motor_t_comm_misc(motor_t * chain)
 		{
 			if(chain->misc_cmd == EN_UART_ENC || chain->misc_cmd == DIS_UART_ENC)
 				chain->encoder_mode = chain->misc_cmd;
-			if(chain->misc_cmd == SET_FOC_MODE || chain->misc_cmd == SET_SINUSOIDAL_MODE)
+			if(chain->misc_cmd == SET_FOC_MODE || chain->misc_cmd == SET_SINUSOIDAL_MODE || chain->misc_cmd == SET_PCTL_IQ_MODE || chain->misc_cmd == SET_PCTL_VQ_MODE)
 				chain->control_mode = chain->misc_cmd;
 			break;
 		}
@@ -214,7 +214,7 @@ void update_motor_t_from_can_data(can_payload_t * payload, motor_t * j)
 	else
 	{
 		j->q32_rotor = payload->i32[0];
-		//j->q = (float)(j->q32_rotor/4096.f);
+		j->q = (float)(j->q32_rotor/4096.f);
 	}
 
 
@@ -236,6 +236,14 @@ void update_motor_t_from_can_data(can_payload_t * payload, motor_t * j)
 int motor_t_comm(motor_t * j)
 {
 	can_tx_header.StdId = j->id;
+	if( (j->control_mode == SET_PCTL_VQ_MODE || j->control_mode == SET_PCTL_IQ_MODE) && j->encoder_mode == DIS_UART_ENC)
+	{
+		can_tx_header.DLC = sizeof(int32_t);
+	}
+	else
+	{
+		can_tx_header.DLC = sizeof(int16_t);
+	}
 	HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, j->mtn16.d, &can_tx_mailbox);
 
 	for(uint32_t exp_ts = HAL_GetTick()+1; HAL_GetTick() < exp_ts;)

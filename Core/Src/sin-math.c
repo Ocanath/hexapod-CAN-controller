@@ -108,6 +108,11 @@ float fmod_2pi(float in)
 	return in-TWO_PI*fv;
 }
 
+float wrap_2pi(float in)
+{
+	return fmod_2pi(in + PI) - PI;
+}
+
 float unwrap(float theta,float * prev_theta)
 {
 	float dif = fmod_2pi(fmod_2pi(*prev_theta) - theta + PI);

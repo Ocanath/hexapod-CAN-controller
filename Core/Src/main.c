@@ -168,16 +168,21 @@ int main(void)
 	rgb_play((rgb_t){0,255,0});
 	//can_network_keyboard_discovery();
 
-//	motor_t * j32 = motor_t_with_id(32,chain,NUM_motor_tS);
-//	j32->ctl.kp = 9.0f;
-//	j32->ctl.ki_div = 377.f;
-//	j32->ctl.x_pi = 0.f;
-//	j32->ctl.x_sat = 1.5f;
-//	j32->ctl.kd = 0.20f/3.f;
-//	j32->ctl.tau_sat = 0.85f;
-//
-//	j32->sin_q = sin_lookup(400,30);
-//	j32->cos_q = (int32_t)(sin62b(400)>>32);
+	ctl_params_t template_ctl =
+	{
+		.kp = 1000.f,
+		.tau_sat = 1500.f,
+
+		.ki_div = 3.f,
+		.x_sat = 1500.f,
+
+		.x_pi = 0
+	};
+	m_mcpy(&chain[0].ctl, &template_ctl,sizeof(ctl_params_t));
+	m_mcpy(&chain[1].ctl, &template_ctl,sizeof(ctl_params_t));
+
+
+
 	u32_fmt_t payload[19] = {0};
 
 	uint32_t disp_ts = 0;
@@ -248,6 +253,16 @@ int main(void)
 		{
 			chain[m].mtn16.i16[0] = 0;
 		}
+		{
+			float e = wrap_2pi(hexapod.leg[0].chain[1].q - chain[0].q);
+			float vq = ctl_PI(e, &chain[0].ctl);
+			chain[0].mtn16.i16[0] = (int16_t)vq;
+		}
+		{
+			float e = wrap_2pi(hexapod.leg[0].chain[2].q - chain[1].q);
+			float vq = ctl_PI(e, &chain[1].ctl);
+			chain[1].mtn16.i16[0] = (int16_t)vq;
+		}
 
 		for(int m = 0; m < NUM_motor_tS; m++)
 		{
@@ -263,7 +278,7 @@ int main(void)
 
 		if(HAL_GetTick() > disp_ts)
 		{
-			disp_ts = HAL_GetTick() + 10;
+			disp_ts = HAL_GetTick() + 15;
 
 			//for(int i = 0; i < NUM_motor_tS; i++)
 			//{
@@ -281,6 +296,9 @@ int main(void)
 					j = j->child;
 				}
 			}
+			payload[0].i32 = (int32_t)(chain[0].q*4096.f);
+			payload[1].i32 = (int32_t)(chain[1].q*4096.f);
+
 			payload[18].u32 = fletchers_checksum32((uint32_t*)payload, 18);
 
 			m_uart_tx_start(&m_huart2, (uint8_t*)payload, sizeof(u32_fmt_t)*19 );

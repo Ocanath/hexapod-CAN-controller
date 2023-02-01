@@ -19,7 +19,7 @@
 
 #define ONE_BY_THREE_PI			1.0471975512f
 
-
+float wrap_2pi(float in);
 float fmod_2pi(float in);
 float unwrap(float theta,float * prev_theta);
 float atan2_approx(float sinVal, float cosVal);
