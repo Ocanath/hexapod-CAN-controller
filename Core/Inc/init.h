@@ -11,16 +11,16 @@
 
 #define MICROSECOND_TIMER_PERIOD 0xFFFFFFFF	//32 bit timer. 24 bits
 
-ADC_HandleTypeDef hadc1;
+extern ADC_HandleTypeDef hadc1;
 
-CAN_HandleTypeDef hcan1;
+extern CAN_HandleTypeDef hcan1;
 
-SPI_HandleTypeDef hspi1;
+extern SPI_HandleTypeDef hspi1;
 
-TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim2;
 
-UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart2;
 
 void SystemClock_Config(void);
 void MX_GPIO_Init(void);

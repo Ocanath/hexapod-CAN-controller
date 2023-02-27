@@ -1,5 +1,16 @@
 #include "init.h"
 
+ADC_HandleTypeDef hadc1;
+
+CAN_HandleTypeDef hcan1;
+
+SPI_HandleTypeDef hspi1;
+
+TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim2;
+
+UART_HandleTypeDef huart2;
+
 /**
  * @brief System Clock Configuration
  * @retval None
