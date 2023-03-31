@@ -10,7 +10,7 @@
 motor_t chain[NUM_motor_tS] =
 {
 		{						//1
-				.id = 38,//24,
+				.id = 24,
 				.mtn16 = {{0}},
 				.ctl = {
 						.kp = 9.f,
@@ -22,7 +22,7 @@ motor_t chain[NUM_motor_tS] =
 				.misc_cmd = LED_OFF
 		},
 		{						//2
-				.id = 39,//25,
+				.id = 25,
 				.mtn16 = {{0}},
 				.ctl = {
 						.kp = 9.f,
@@ -69,7 +69,7 @@ motor_t chain[NUM_motor_tS] =
 				.misc_cmd = LED_OFF
 		},
 		{
-			.id = 31
+			.id = 32
 		},
 		{
 			.id = 33
@@ -78,10 +78,10 @@ motor_t chain[NUM_motor_tS] =
 			.id = 34
 		},
 		{
-			.id = 35
+			.id = 36
 		},
 		{
-			.id = 36
+			.id = 35
 		},
 		{
 			.id = 37
@@ -93,7 +93,7 @@ motor_t chain[NUM_motor_tS] =
 			.id = 30
 		},
 		{
-			.id = 32
+			.id = 31
 		}
 };
 
