@@ -69,31 +69,31 @@ motor_t chain[NUM_motor_tS] =
 				.misc_cmd = LED_OFF
 		},
 		{
-			.id = 32
+				.id = 32
 		},
 		{
-			.id = 33
+				.id = 33
 		},
 		{
-			.id = 34
+				.id = 34
 		},
 		{
-			.id = 36
+				.id = 29
 		},
 		{
-			.id = 35
+				.id = 30
 		},
 		{
-			.id = 37
+				.id = 31
 		},
 		{
-			.id = 29
+				.id = 36
 		},
 		{
-			.id = 30
+				.id = 35
 		},
 		{
-			.id = 31
+				.id = 37
 		}
 };
 
@@ -147,16 +147,16 @@ int motor_t_comm_misc(motor_t * chain)
  * This can be used, after a fashion, to unwrap timestamps coming in from a
  * timer that wraps, as long as the timer wrap value is smaller than 32bits
  * range.
-*/
+ */
 int32_t wrap_fixed(int32_t in, uint32_t k)
 {
 	uint32_t half_k = k >> 1;	//it is necessary to get half value
 
-    int32_t result = ((in + half_k) % k) - half_k;
-    if (in < -half_k)
-        return k + result;
-    else
-        return result;
+	int32_t result = ((in + half_k) % k) - half_k;
+	if (in < -half_k)
+		return k + result;
+	else
+		return result;
 }
 
 /*
@@ -255,7 +255,7 @@ int motor_t_comm(motor_t * j)
 	int node_responsive = 0;
 	int wrong_node = 0;
 	int timed_out = 1;
-	for(uint32_t exp_ts = HAL_GetTick()+10;  HAL_GetTick() < exp_ts;)
+	for(uint32_t exp_ts = HAL_GetTick()+1;  HAL_GetTick() < exp_ts;)
 	{
 		if(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) >= 1)
 		{
@@ -284,22 +284,22 @@ void chain_comm(motor_t * chain, int num_motor_ts)
 	for(int i = 0; i < num_motor_ts; i++)
 	{
 		int rc = motor_t_comm(&chain[i]);
-//		if(rc != 1)
-//		{
-//			uint8_t timed_out = (rc & (1 << 1)) >> 1;
-//			if(chain[i].responsive == 0 && timed_out == 0)	//means a different node responded
-//			{
-//				for(int j = 0; j < num_motor_ts; j++)
-//				{
-//					int lki = (j + i) % num_motor_ts;
-//					motor_t * pj = &chain[lki];
-//					if(can_rx_header.StdId == pj->id)
-//					{
-//						update_motor_t_from_can_data(&can_rx_data,pj);
-//					}
-//				}
-//			}
-//		}
+		//		if(rc != 1)
+		//		{
+		//			uint8_t timed_out = (rc & (1 << 1)) >> 1;
+		//			if(chain[i].responsive == 0 && timed_out == 0)	//means a different node responded
+		//			{
+		//				for(int j = 0; j < num_motor_ts; j++)
+		//				{
+		//					int lki = (j + i) % num_motor_ts;
+		//					motor_t * pj = &chain[lki];
+		//					if(can_rx_header.StdId == pj->id)
+		//					{
+		//						update_motor_t_from_can_data(&can_rx_data,pj);
+		//					}
+		//				}
+		//			}
+		//		}
 	}
 }
 

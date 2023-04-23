@@ -13,6 +13,7 @@
 #include "m_mcpy.h"
 #include <string.h>
 
+
 static int led_idx = NUM_motor_tS;
 static int prev_led_idx = NUM_motor_tS-1;
 static uint32_t can_tx_ts = 0;
@@ -110,6 +111,22 @@ void send_u8_val(motor_t * m, uint8_t header, uint8_t val)
 	can_tx_header.DLC = bkp;
 }
 
+void heartbeat_blinkall(void)
+{
+	for(int blink = 0; blink < 2; blink++)
+	{
+		for(int led_idx = 0; led_idx < NUM_motor_tS; led_idx++)
+		{
+			send_u8_val(&chain[led_idx], LED_ON, 0);
+		}
+		HAL_Delay(50);
+		for(int led_idx = 0; led_idx < NUM_motor_tS; led_idx++)
+		{
+			send_u8_val(&chain[led_idx], LED_OFF, 0);
+		}
+		HAL_Delay(50);
+	}
+}
 
 void blink_motors_in_chain(void);
 
@@ -171,20 +188,22 @@ int main(void)
 	}
 	volatile uint32_t ik_end_ts = HAL_GetTick();
 
-
 	uint32_t start_ts = HAL_GetTick();
-	for(uint32_t exp_ts = start_ts + 3000; HAL_GetTick() < exp_ts;)
+	const uint32_t fade_up_time = 1500;
+	for(uint32_t exp_ts = start_ts + fade_up_time; HAL_GetTick() < exp_ts;)
 	{
 		uint32_t t = HAL_GetTick() - start_ts;
-		uint8_t c = (t*255)/3000;
+		uint8_t c = (t*255)/fade_up_time;
 		rgb_t rgb = {c,c,c};
 		rgb_play(rgb);
 	}
 //	motor_t_comm_misc(chain);
-	HAL_Delay(100);
+
+	heartbeat_blinkall();
+	HAL_Delay(300);
 
 	for(int i = 0; i < NUM_motor_tS; i++)
-		chain[i].misc_cmd = DIS_UART_ENC; //chain[i].misc_cmd = EN_UART_ENC;
+		chain[i].misc_cmd = EN_UART_ENC; //chain[i].misc_cmd = EN_UART_ENC;
 	for(int i = 0; i < NUM_motor_tS; i++)
 		motor_t_comm_misc(&chain[i]);
 
@@ -194,8 +213,6 @@ int main(void)
 		chain[i].misc_cmd = SET_SINUSOIDAL_MODE;//SET_FOC_MODE; //chain[i].misc_cmd = EN_UART_ENC;
 	for(int i = 0; i < NUM_motor_tS; i++)
 		motor_t_comm_misc(&chain[i]);
-
-	chain_comm(chain, NUM_motor_tS);
 
 	rgb_play((rgb_t){0,255,0});
 	//can_network_keyboard_discovery();
@@ -213,8 +230,9 @@ int main(void)
 	m_mcpy(&chain[0].ctl, &template_ctl,sizeof(ctl_params_t));
 	m_mcpy(&chain[1].ctl, &template_ctl,sizeof(ctl_params_t));
 
-	for(int i = 0; i < 2; i++)
+	for(int i = 0; i < NUM_motor_tS; i++)
 	{
+//		send_u8_val(&chain[i], LED_OFF, 0);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KP_VALUE, 3000);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KP_RADIX, 0);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KI_VALUE, 444);
@@ -229,6 +247,9 @@ int main(void)
 
 	u32_fmt_t payload[19] = {0};
 
+	heartbeat_blinkall();
+	HAL_Delay(300);
+
 	uint32_t disp_ts = 0;
 	while(1)
 	{
@@ -236,7 +257,7 @@ int main(void)
 
 
 		ik_start_ts = HAL_GetTick();
-//		if(1 == 0)
+
 		{
 			vect3_t foot_xy_1;
 			float h = 40; float w = 100;
@@ -292,7 +313,6 @@ int main(void)
 
 
 
-
 		for(int m = 0; m < NUM_motor_tS; m++)
 		{
 			chain[m].mtn16.i16[0] = 0;
@@ -317,7 +337,7 @@ int main(void)
 		for(int m = 0; m < NUM_motor_tS; m++)
 		{
 			/*In the main/actual motion loop, only move motor_ts that have responded properly*/
-			if(chain[m].responsive)
+			//if(chain[m].responsive)
 			{
 				motor_t_comm(&chain[m]);
 			}
@@ -330,25 +350,20 @@ int main(void)
 		{
 			disp_ts = HAL_GetTick() + 10;
 
-			//for(int i = 0; i < NUM_motor_tS; i++)
-			//{
-				//payload[i].i32 = (int32_t)(chain[i].q*4096.f);
-				//payload[i].i32 = chain[i].q32_rotor;
-			//}
-
 			int pld_idx = 0;
-			for(int leg = 0; leg < NUM_LEGS; leg++)
+//			for(int leg = 0; leg < NUM_LEGS; leg++)
+//			{
+//				joint * j = &hexapod.leg[leg].chain[1];
+//				for(int i = 0; i < 3; i++)
+//				{
+//					payload[pld_idx++].i32 = (int32_t)(j->q*4096.f);
+//					j = j->child;
+//				}
+//			}
+			for(int i = 0; i < NUM_motor_tS; i++)
 			{
-				joint * j = &hexapod.leg[leg].chain[1];
-				for(int i = 0; i < 3; i++)
-				{
-					payload[pld_idx++].i32 = (int32_t)(j->q*4096.f);
-					j = j->child;
-				}
+				payload[i].i32 = (int32_t)(chain[i].q16);
 			}
-			payload[0].i32 = (int32_t)(chain[0].q*4096.f/16.f);
-			payload[1].i32 = (int32_t)(chain[1].q*4096.f/16.f);
-
 			payload[18].u32 = fletchers_checksum32((uint32_t*)payload, 18);
 
 			m_uart_tx_start(&m_huart2, (uint8_t*)payload, sizeof(u32_fmt_t)*19 );
@@ -567,13 +582,13 @@ void blink_motors_in_chain(void)
 		{
 			led_idx = (led_idx + 1) % (NUM_motor_tS+1);
 			if(led_idx == NUM_motor_tS)
-				can_tx_ts = HAL_GetTick()+700;
+				can_tx_ts = HAL_GetTick()+0;
 			else
-				can_tx_ts = HAL_GetTick()+500;
-			if(chain[led_idx].responsive==1)
-			{
-				break;
-			}
+				can_tx_ts = HAL_GetTick()+50;
+//			if(chain[led_idx].responsive==1)
+//			{
+//				break;
+//			}
 		}
 
 		if(led_idx < NUM_motor_tS)
