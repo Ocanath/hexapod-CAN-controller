@@ -112,14 +112,15 @@ int motor_t_comm_misc(motor_t * chain)
 	chain->mtn16.d[0]=chain->misc_cmd;
 	HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, chain->mtn16.d, &can_tx_mailbox);
 
+	if(chain->misc_cmd == EN_UART_ENC || chain->misc_cmd == DIS_UART_ENC)
+		chain->encoder_mode = chain->misc_cmd;
+	if(chain->misc_cmd == SET_FOC_MODE || chain->misc_cmd == SET_SINUSOIDAL_MODE || chain->misc_cmd == SET_PCTL_IQ_MODE || chain->misc_cmd == SET_PCTL_VQ_MODE)
+		chain->control_mode = chain->misc_cmd;
+
 	for(uint32_t exp_ts = HAL_GetTick()+1; HAL_GetTick() < exp_ts;)
 	{
 		if(HAL_CAN_IsTxMessagePending(&hcan1,can_tx_mailbox) == 0)
 		{
-			if(chain->misc_cmd == EN_UART_ENC || chain->misc_cmd == DIS_UART_ENC)
-				chain->encoder_mode = chain->misc_cmd;
-			if(chain->misc_cmd == SET_FOC_MODE || chain->misc_cmd == SET_SINUSOIDAL_MODE || chain->misc_cmd == SET_PCTL_IQ_MODE || chain->misc_cmd == SET_PCTL_VQ_MODE)
-				chain->control_mode = chain->misc_cmd;
 			break;
 		}
 	}
