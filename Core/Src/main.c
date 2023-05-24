@@ -312,17 +312,6 @@ int main(void)
 		ik_end_ts = HAL_GetTick();
 
 
-
-		for(int m = 0; m < NUM_motor_tS; m++)
-		{
-			chain[m].mtn16.i16[0] = 0;
-		}
-
-		{
-			chain[0].mtn16.i32[0] = (int32_t)(hexapod.leg[0].chain[1].q*16.f*4096.f);
-			chain[1].mtn16.i32[0] = (int32_t)(hexapod.leg[0].chain[2].q*16.f*4096.f);
-		}
-
 //		{
 //			float e = wrap_2pi(hexapod.leg[0].chain[1].q - chain[0].q);
 //			float vq = ctl_PI(e, &chain[0].ctl);
@@ -341,14 +330,16 @@ int main(void)
 			{
 				motor_t_comm(&chain[m]);
 			}
+			HAL_Delay(1);
 		}
 
-		blink_motors_in_chain();
+		/*This interferes with i16 encoder reception on joint id 24 and possibly 25*/
+		//blink_motors_in_chain();
 
 
 		if(HAL_GetTick() > disp_ts)
 		{
-			disp_ts = HAL_GetTick() + 10;
+			disp_ts = HAL_GetTick() + 33;
 
 			int pld_idx = 0;
 //			for(int leg = 0; leg < NUM_LEGS; leg++)
