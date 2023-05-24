@@ -256,7 +256,7 @@ int motor_t_comm(motor_t * j)
 	int node_responsive = 0;
 	int wrong_node = 0;
 	int timed_out = 1;
-	for(uint32_t exp_ts = HAL_GetTick()+1;  HAL_GetTick() < exp_ts;)
+	for(uint32_t exp_ts = HAL_GetTick()+2;  HAL_GetTick() < exp_ts;)
 	{
 		if(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) >= 1)
 		{

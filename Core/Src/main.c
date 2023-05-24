@@ -330,11 +330,10 @@ int main(void)
 			{
 				motor_t_comm(&chain[m]);
 			}
-			HAL_Delay(1);
 		}
 
 		/*This interferes with i16 encoder reception on joint id 24 and possibly 25*/
-		//blink_motors_in_chain();
+		blink_motors_in_chain();
 
 
 		if(HAL_GetTick() > disp_ts)
