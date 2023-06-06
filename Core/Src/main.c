@@ -14,8 +14,8 @@
 #include <string.h>
 
 
-static int led_idx = NUM_motor_tS;
-static int prev_led_idx = NUM_motor_tS-1;
+static int led_idx = NUM_MOTORS;
+static int prev_led_idx = NUM_MOTORS-1;
 static uint32_t can_tx_ts = 0;
 
 
@@ -115,12 +115,12 @@ void heartbeat_blinkall(void)
 {
 	for(int blink = 0; blink < 2; blink++)
 	{
-		for(int led_idx = 0; led_idx < NUM_motor_tS; led_idx++)
+		for(int led_idx = 0; led_idx < NUM_MOTORS; led_idx++)
 		{
 			send_u8_val(&chain[led_idx], LED_ON, 0);
 		}
 		HAL_Delay(50);
-		for(int led_idx = 0; led_idx < NUM_motor_tS; led_idx++)
+		for(int led_idx = 0; led_idx < NUM_MOTORS; led_idx++)
 		{
 			send_u8_val(&chain[led_idx], LED_OFF, 0);
 		}
@@ -202,16 +202,16 @@ int main(void)
 	heartbeat_blinkall();
 	HAL_Delay(300);
 
-	for(int i = 0; i < NUM_motor_tS; i++)
+	for(int i = 0; i < NUM_MOTORS; i++)
 		chain[i].misc_cmd = EN_UART_ENC; //chain[i].misc_cmd = EN_UART_ENC;
-	for(int i = 0; i < NUM_motor_tS; i++)
+	for(int i = 0; i < NUM_MOTORS; i++)
 		motor_t_comm_misc(&chain[i]);
 
 	HAL_Delay(100);
 
-	for(int i = 0; i < NUM_motor_tS; i++)
+	for(int i = 0; i < NUM_MOTORS; i++)
 		chain[i].misc_cmd = SET_SINUSOIDAL_MODE;//SET_FOC_MODE; //chain[i].misc_cmd = EN_UART_ENC;
-	for(int i = 0; i < NUM_motor_tS; i++)
+	for(int i = 0; i < NUM_MOTORS; i++)
 		motor_t_comm_misc(&chain[i]);
 
 	rgb_play((rgb_t){0,255,0});
@@ -230,7 +230,7 @@ int main(void)
 	m_mcpy(&chain[0].ctl, &template_ctl,sizeof(ctl_params_t));
 	m_mcpy(&chain[1].ctl, &template_ctl,sizeof(ctl_params_t));
 
-	for(int i = 0; i < NUM_motor_tS; i++)
+	for(int i = 0; i < NUM_MOTORS; i++)
 	{
 //		send_u8_val(&chain[i], LED_OFF, 0);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KP_VALUE, 3000);
@@ -323,7 +323,7 @@ int main(void)
 //			chain[1].mtn16.i16[0] = (int16_t)vq;
 //		}
 
-		for(int m = 0; m < NUM_motor_tS; m++)
+		for(int m = 0; m < NUM_MOTORS; m++)
 		{
 			/*In the main/actual motion loop, only move motor_ts that have responded properly*/
 			//if(chain[m].responsive)
@@ -340,7 +340,7 @@ int main(void)
 		{
 			disp_ts = HAL_GetTick() + 33;
 
-			int pld_idx = 0;
+//			int pld_idx = 0;
 //			for(int leg = 0; leg < NUM_LEGS; leg++)
 //			{
 //				joint * j = &hexapod.leg[leg].chain[1];
@@ -350,7 +350,7 @@ int main(void)
 //					j = j->child;
 //				}
 //			}
-			for(int i = 0; i < NUM_motor_tS; i++)
+			for(int i = 0; i < NUM_MOTORS; i++)
 			{
 				payload[i].i32 = (int32_t)(chain[i].q16);
 			}
@@ -407,7 +407,7 @@ void can_network_keyboard_discovery(void)
 	gl_uart_rx_kb_activity_flag = 0;
 
 	int num_responsive = 0;
-	for(int i = 0; i < NUM_motor_tS; i++)
+	for(int i = 0; i < NUM_MOTORS; i++)
 	{
 		if(chain[i].responsive == 1)
 		{
@@ -420,7 +420,7 @@ void can_network_keyboard_discovery(void)
 			motor_t_comm_misc(&(kb_j));
 		}
 	}
-	sprintf(gl_print_str, "Discovered %d out of %d expected nodes\r\n", num_responsive, NUM_motor_tS);
+	sprintf(gl_print_str, "Discovered %d out of %d expected nodes\r\n", num_responsive, NUM_MOTORS);
 	print_string(gl_print_str);
 	print_string("Do full network analysis? Y/N\r\n");
 	while(gl_uart_rx_kb_activity_flag == 0);
@@ -554,24 +554,24 @@ void blink_motors_in_chain(void)
 {
 	if(HAL_GetTick()>can_tx_ts)
 	{
-		if(led_idx == NUM_motor_tS)
+		if(led_idx == NUM_MOTORS)
 		{
 			rgb_play((rgb_t){0,255,0});
-			for(int i = 0; i < NUM_motor_tS; i++)
+			for(int i = 0; i < NUM_MOTORS; i++)
 				chain[i].misc_cmd = LED_OFF;
 		}
 		else
 		{
 			rgb_play((rgb_t){0,0,0});
-			for(int i = 0; i < NUM_motor_tS; i++)
+			for(int i = 0; i < NUM_MOTORS; i++)
 				chain[i].misc_cmd = LED_OFF;
 		}
 
 		/*Search the leg list for the next valid motor_t*/
-		for(int jidx = 0; jidx < NUM_motor_tS; jidx++)
+		for(int jidx = 0; jidx < NUM_MOTORS; jidx++)
 		{
-			led_idx = (led_idx + 1) % (NUM_motor_tS+1);
-			if(led_idx == NUM_motor_tS)
+			led_idx = (led_idx + 1) % (NUM_MOTORS+1);
+			if(led_idx == NUM_MOTORS)
 				can_tx_ts = HAL_GetTick()+0;
 			else
 				can_tx_ts = HAL_GetTick()+50;
@@ -581,12 +581,12 @@ void blink_motors_in_chain(void)
 //			}
 		}
 
-		if(led_idx < NUM_motor_tS)
+		if(led_idx < NUM_MOTORS)
 		{
 			chain[led_idx].misc_cmd = LED_ON;
 			motor_t_comm_misc(&(chain[led_idx]));
 		}
-		if(prev_led_idx < NUM_motor_tS)
+		if(prev_led_idx < NUM_MOTORS)
 		{
 			chain[prev_led_idx].misc_cmd = LED_OFF;
 			motor_t_comm_misc(&(chain[prev_led_idx]));

@@ -78,7 +78,7 @@
 //	 * is formatted in ascending order, with each triple corresponding
 //	 * to a leg. If not, this for loop is invalid*/
 //	int leg = 0;
-//	for(int i = 0; i < NUM_motor_tS-1; i++)
+//	for(int i = 0; i < NUM_MOTORS-1; i++)
 //	{
 //		if(i % 3 == 0)
 //			robot->p_motor_t[leg++] = &chain[i];
@@ -86,7 +86,7 @@
 //	}
 //	//next, scan through the list and set every third motor_t child to ZERO
 //	//so that our chains are null terminated!
-//	for(int i = 0; i < NUM_motor_tS; i++)
+//	for(int i = 0; i < NUM_MOTORS; i++)
 //	{
 //		if(i % 3 == 2)	//
 //		{

@@ -28,7 +28,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "joint.h"
+extern volatile can_msg_record_t rx_list[NUM_MOTORS];
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -67,5 +68,3 @@ void USART2_IRQHandler(void);
 #endif
 
 #endif /* __STM32F7xx_IT_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

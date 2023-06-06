@@ -76,6 +76,7 @@ void Error_Handler(void);
 #define MPU_INT_GPIO_Port GPIOA
 #define MPU_SS_Pin GPIO_PIN_12
 #define MPU_SS_GPIO_Port GPIOA
+
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
@@ -85,5 +86,3 @@ void Error_Handler(void);
 #endif
 
 #endif /* __MAIN_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

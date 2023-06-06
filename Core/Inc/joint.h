@@ -15,7 +15,7 @@
 #define RAD_TO_DEG	57.2957795
 #define DEG_TO_RAD	0.0174532925f
 
-#define NUM_motor_tS 18
+#define NUM_MOTORS 18
 
 enum {
 	CALC_ALIGN_OFFSET = 0x1,
@@ -110,7 +110,7 @@ typedef struct motor_t
 
 }motor_t;
 
-extern motor_t chain[NUM_motor_tS];
+extern motor_t chain[NUM_MOTORS];
 
 float wrap(float in);
 int motor_t_comm_misc(motor_t * chain);

@@ -33,6 +33,12 @@ typedef union
 //	double f64[PAYLOAD_SIZE_CAN/sizeof(double)];	//can include if use. 1 element array thing kind of skeeves me out so im commenting it
 }can_payload_t;
 
+typedef struct can_msg_record_t
+{
+	can_payload_t msg;
+	uint16_t id;
+}can_msg_record_t;
+
 extern can_payload_t can_tx_data;
 extern can_payload_t can_rx_data;
 

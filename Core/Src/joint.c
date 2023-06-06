@@ -7,7 +7,7 @@
 #include "joint.h"
 #include "trig_fixed.h"
 
-motor_t chain[NUM_motor_tS] =
+motor_t chain[NUM_MOTORS] =
 {
 		{						//1
 				.id = 24,
@@ -226,7 +226,12 @@ void update_motor_t_from_can_data(can_payload_t * payload, motor_t * j)
 	j->iq_meas = iq12b;
 }
 
+volatile can_msg_record_t rx_list[NUM_MOTORS];
+can_payload_t can_tx_list[NUM_MOTORS];
 
+void load_can_list(void)
+{
+}
 
 /*
  * Performs normal mode torque/position commands to motors. Operates on a list of motor_ts,
