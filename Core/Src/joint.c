@@ -9,7 +9,7 @@
 
 motor_t chain[NUM_MOTORS] =
 {
-		{						//1
+		{						//leg 1
 				.id = 24,
 				.mtn16 = {{0}},
 				.ctl = {
@@ -19,9 +19,10 @@ motor_t chain[NUM_MOTORS] =
 						.x_sat = 1.5f,
 						.tau_sat = 0.85f
 				},
+				.q_offset = 1.317627f,
 				.misc_cmd = LED_OFF
 		},
-		{						//2
+		{						//leg 1
 				.id = 25,
 				.mtn16 = {{0}},
 				.ctl = {
@@ -31,69 +32,86 @@ motor_t chain[NUM_MOTORS] =
 						.x_sat = 1.5f,
 						.tau_sat = 0.85f
 				},
+				.q_offset = 0.565593f,
 				.misc_cmd = LED_OFF
 		},
-		{						//0
+		{						//leg 1
 				.id = 23,
 				.mtn16 = {{0}},
+				.q_offset = -0.220717f,
 				.misc_cmd = LED_OFF
 		},
-		{						//3
+		{						//leg 2, q1
 				.id = 26,
 				.mtn16 = {{0}},
+				.q_offset = -1.957520f,
 				.misc_cmd = LED_OFF
 		},
-		{						//4
+		{						//leg 2, q2
 				.id = 27,
 				.mtn16 = {{0}},
+				.q_offset = 1.244548f,
 				.misc_cmd = LED_OFF
 		},
-		{						//5
+		{						//leg 2, q3
 				.id = 28,
 				.mtn16 = {{0}},
+				.q_offset = 3.138902f,
 				.misc_cmd = LED_OFF
 		},
-		{						//7
+		{						//leg 3, q1
 				.id = 21,
 				.mtn16 = {{0}},
+				.q_offset = -0.608643f,
 				.misc_cmd = LED_OFF
 		},
-		{						//6
+		{						//leg 3, q2
 				.id = 20,
 				.mtn16 = {{0}},
+				.q_offset = 0.823162f,
 				.misc_cmd = LED_OFF
 		},
-		{						//7
+		{						//leg 3, q3
 				.id = 22,
 				.mtn16 = {{0}},
+				.q_offset = 1.213853f,
 				.misc_cmd = LED_OFF
 		},
-		{
-				.id = 32
+		{						//leg 4, q1
+				.id = 32,
+				.q_offset = -0.409668f
+		},
+		{						//leg 4, q2
+				.id = 33,
+				.q_offset = -0.566243f
+		},
+		{						//leg 4, q3
+				.id = 34,
+				.q_offset = -0.315199f
+		},
+		{						//leg 5, q1
+				.id = 29,
+				.q_offset = -1.480469f
+		},
+		{						//leg 5, q2
+				.id = 30,
+				.q_offset = 2.093181f
+		},
+		{						//leg 5, q3
+				.id = 31,
+				.q_offset = -2.467299f
 		},
 		{
-				.id = 33
+				.id = 36,
+				.q_offset = 0.978027f
 		},
 		{
-				.id = 34
+				.id = 35,
+				.q_offset = 1.709880f
 		},
 		{
-				.id = 29
-		},
-		{
-				.id = 30
-		},
-		{
-				.id = 31
-		},
-		{
-				.id = 36
-		},
-		{
-				.id = 35
-		},
-		{
-				.id = 37
+				.id = 37,
+				.q_offset = -0.921401f
 		}
 };
 

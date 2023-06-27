@@ -352,7 +352,7 @@ int main(void)
 //			}
 			for(int i = 0; i < NUM_MOTORS; i++)
 			{
-				payload[i].i32 = (int32_t)(chain[i].q16);
+				payload[i].i32 = (int32_t)(chain[i].q16) - (int32_t)(chain[i].q_offset*4096.f);
 			}
 			payload[18].u32 = fletchers_checksum32((uint32_t*)payload, 18);
 
