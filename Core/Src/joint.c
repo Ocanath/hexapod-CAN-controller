@@ -9,6 +9,48 @@
 
 motor_t chain[NUM_MOTORS] =
 {
+		{						//leg 4, q1
+				.id = 32,
+				.q_offset = -0.409668f
+		},
+		{						//leg 4, q2
+				.id = 33,
+				.q_offset = -0.566243f
+		},
+		{						//leg 4, q3
+				.id = 34,
+				.q_offset = -0.315199f
+		},
+		{						//leg 3, q1
+				.id = 21,
+				.mtn16 = {{0}},
+				.q_offset = -0.608643f,
+				.misc_cmd = LED_OFF
+		},
+		{						//leg 3, q2
+				.id = 20,
+				.mtn16 = {{0}},
+				.q_offset = 0.823162f,
+				.misc_cmd = LED_OFF
+		},
+		{						//leg 3, q3
+				.id = 22,
+				.mtn16 = {{0}},
+				.q_offset = 1.213853f,
+				.misc_cmd = LED_OFF
+		},
+		{						//leg 5, q1
+				.id = 29,
+				.q_offset = -1.480469f
+		},
+		{						//leg 5, q2
+				.id = 30,
+				.q_offset = 2.093181f
+		},
+		{						//leg 5, q3
+				.id = 31,
+				.q_offset = -2.467299f
+		},
 		{						//leg 1
 				.id = 24,
 				.mtn16 = {{0}},
@@ -41,6 +83,18 @@ motor_t chain[NUM_MOTORS] =
 				.q_offset = -0.220717f,
 				.misc_cmd = LED_OFF
 		},
+		{						//leg 6, q1
+				.id = 36,
+				.q_offset = 0.978027f
+		},
+		{						//leg 6, q2
+				.id = 35,
+				.q_offset = 1.709880f
+		},
+		{						//leg 6, q3
+				.id = 37,
+				.q_offset = -0.921401f
+		},
 		{						//leg 2, q1
 				.id = 26,
 				.mtn16 = {{0}},
@@ -58,60 +112,6 @@ motor_t chain[NUM_MOTORS] =
 				.mtn16 = {{0}},
 				.q_offset = 3.138902f,
 				.misc_cmd = LED_OFF
-		},
-		{						//leg 3, q1
-				.id = 21,
-				.mtn16 = {{0}},
-				.q_offset = -0.608643f,
-				.misc_cmd = LED_OFF
-		},
-		{						//leg 3, q2
-				.id = 20,
-				.mtn16 = {{0}},
-				.q_offset = 0.823162f,
-				.misc_cmd = LED_OFF
-		},
-		{						//leg 3, q3
-				.id = 22,
-				.mtn16 = {{0}},
-				.q_offset = 1.213853f,
-				.misc_cmd = LED_OFF
-		},
-		{						//leg 4, q1
-				.id = 32,
-				.q_offset = -0.409668f
-		},
-		{						//leg 4, q2
-				.id = 33,
-				.q_offset = -0.566243f
-		},
-		{						//leg 4, q3
-				.id = 34,
-				.q_offset = -0.315199f
-		},
-		{						//leg 5, q1
-				.id = 29,
-				.q_offset = -1.480469f
-		},
-		{						//leg 5, q2
-				.id = 30,
-				.q_offset = 2.093181f
-		},
-		{						//leg 5, q3
-				.id = 31,
-				.q_offset = -2.467299f
-		},
-		{
-				.id = 36,
-				.q_offset = 0.978027f
-		},
-		{
-				.id = 35,
-				.q_offset = 1.709880f
-		},
-		{
-				.id = 37,
-				.q_offset = -0.921401f
 		}
 };
 
