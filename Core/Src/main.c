@@ -18,6 +18,24 @@ static int led_idx = NUM_MOTORS;
 static int prev_led_idx = NUM_MOTORS-1;
 static uint32_t can_tx_ts = 0;
 
+int32_t get_qkinematic_from_qenc(motor_t * m)
+{
+	int32_t offset = (int32_t)(m->q_offset*4096.f);
+	if(m->reverese_dir == 0)
+		return (m->q16 - offset);
+	else
+		return -(m->q16 - offset);
+}
+
+
+int32_t get_qenc_from_qkinematic(motor_t * m)
+{
+	int32_t offset = (int32_t)(m->q_offset*4096.f);
+	if(m->reverese_dir == 0)
+		return (m->q16 + offset);
+	else
+		return  (offset - m->q16);	//algembras
+}
 
 /*
 Generic hex checksum calculation.
@@ -353,14 +371,7 @@ int main(void)
 			for(int i = 0; i < NUM_MOTORS; i++)
 			{
 				motor_t * m = &chain[i];
-				if(m->reverese_dir == 0)
-				{
-					payload[i].i32 = (int32_t)(m->q16) - (int32_t)(m->q_offset*4096.f);
-				}
-				else
-				{
-					payload[i].i32 = -((int32_t)(m->q16) - (int32_t)(m->q_offset*4096.f));
-				}
+				payload[i].i32 = get_qkinematic_from_qenc(m);
 			}
 			payload[18].u32 = fletchers_checksum32((uint32_t*)payload, 18);
 
