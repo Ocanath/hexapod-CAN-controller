@@ -102,6 +102,7 @@ typedef struct motor_t
 	uint8_t control_mode;
 
 	uint8_t responsive;	//flag to indicate whether successful communication to this ID has been verified (through a 'heartbeat' motor instruction')
+	uint8_t reverese_dir; //flag to indicate whether the direction of the adapter encoder should be negated\
 
 	float q;
 	float iq_meas;
