@@ -28,13 +28,13 @@ int32_t get_qkinematic_from_qenc(motor_t * m)
 }
 
 
-int32_t get_qenc_from_qkinematic(motor_t * m)
+int32_t get_qenc_from_qkinematic(int32_t qkinematic, motor_t * m)
 {
 	int32_t offset = (int32_t)(m->q_offset*4096.f);
 	if(m->reverese_dir == 0)
-		return (m->q16 + offset);
+		return (qkinematic + offset);
 	else
-		return  (offset - m->q16);	//algembras
+		return  (offset - qkinematic);	//algembras
 }
 
 /*
@@ -256,11 +256,20 @@ int main(void)
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KI_VALUE, 444);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KI_RADIX, 10);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_XSAT, 1500);
-		send_i32_val(&chain[i], CHANGE_PCTL_VQ_OUTSAT, 1500);
+//		send_i32_val(&chain[i], CHANGE_PCTL_VQ_OUTSAT, 1500);
+		send_i32_val(&chain[i], CHANGE_PCTL_VQ_OUTSAT, 0);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_OUT_RSHIFT, 12);
 
 		send_u8_val(&chain[i], SET_PCTL_VQ_MODE, 0);
 		chain[i].control_mode = SET_PCTL_VQ_MODE;
+	}
+	send_i32_val(&chain[14], CHANGE_PCTL_VQ_OUTSAT, 1500);
+
+	int16_t qdes[NUM_MOTORS] = {0};
+	for(int m = 0; m < NUM_MOTORS; m++)
+	{
+		motor_t_comm(&chain[m]);
+		qdes[m] = (int16_t)get_qkinematic_from_qenc(&chain[m]);
 	}
 
 	u32_fmt_t payload[19] = {0};
@@ -328,8 +337,46 @@ int main(void)
 			}
 		}
 		ik_end_ts = HAL_GetTick();
+		/*uncomment to map kinematics to qdes*/
+//		int pld_idx = 0;
+//		for(int leg = 0; leg < NUM_LEGS; leg++)
+//		{
+//			joint * j = &hexapod.leg[leg].chain[1];
+//			for(int i = 0; i < 3; i++)
+//			{
+//				qdes[pld_idx++] = (int16_t)(j->q*4096.f);
+//				j = j->child;
+//			}
+//		}
 
+		for(int m = 0; m < NUM_MOTORS; m++)
+		{
+			motor_t * pmotor = &chain[m];
+			pmotor->mtn16.i16[0] = get_qenc_from_qkinematic(qdes[m], pmotor);
 
+			motor_t_comm(pmotor);
+		}
+
+		/*This interferes with i16 encoder reception on joint id 24 and possibly 25*/
+		blink_motors_in_chain();
+
+		if(HAL_GetTick() > disp_ts)
+		{
+			disp_ts = HAL_GetTick() + 15;
+
+			for(int i = 0; i < NUM_MOTORS; i++)
+			{
+				motor_t * m = &chain[i];
+				payload[i].i32 = get_qkinematic_from_qenc(m);
+
+//				payload[i].i32 = (int32_t)qdes[i];
+			}
+			payload[18].u32 = fletchers_checksum32((uint32_t*)payload, 18);
+
+			m_uart_tx_start(&m_huart2, (uint8_t*)payload, sizeof(u32_fmt_t)*19 );
+		}
+
+//test function for centralized position control
 //		{
 //			float e = wrap_2pi(hexapod.leg[0].chain[1].q - chain[0].q);
 //			float vq = ctl_PI(e, &chain[0].ctl);
@@ -340,43 +387,6 @@ int main(void)
 //			float vq = ctl_PI(e, &chain[1].ctl);
 //			chain[1].mtn16.i16[0] = (int16_t)vq;
 //		}
-
-		for(int m = 0; m < NUM_MOTORS; m++)
-		{
-			/*In the main/actual motion loop, only move motor_ts that have responded properly*/
-			//if(chain[m].responsive)
-			{
-				motor_t_comm(&chain[m]);
-			}
-		}
-
-		/*This interferes with i16 encoder reception on joint id 24 and possibly 25*/
-		blink_motors_in_chain();
-
-
-		if(HAL_GetTick() > disp_ts)
-		{
-			disp_ts = HAL_GetTick() + 33;
-
-//			int pld_idx = 0;
-//			for(int leg = 0; leg < NUM_LEGS; leg++)
-//			{
-//				joint * j = &hexapod.leg[leg].chain[1];
-//				for(int i = 0; i < 3; i++)
-//				{
-//					payload[pld_idx++].i32 = (int32_t)(j->q*4096.f);
-//					j = j->child;
-//				}
-//			}
-			for(int i = 0; i < NUM_MOTORS; i++)
-			{
-				motor_t * m = &chain[i];
-				payload[i].i32 = get_qkinematic_from_qenc(m);
-			}
-			payload[18].u32 = fletchers_checksum32((uint32_t*)payload, 18);
-
-			m_uart_tx_start(&m_huart2, (uint8_t*)payload, sizeof(u32_fmt_t)*19 );
-		}
 	}
 }
 

@@ -9,58 +9,58 @@
 
 motor_t chain[NUM_MOTORS] =
 {
-		{						//leg 4, q1
+		{//0						//leg 4, q1
 				.id = 32,
 				.q_offset = -0.409668f,
 				.reverese_dir = 1
 		},
-		{						//leg 4, q2
+		{//1						//leg 4, q2
 				.id = 33,
 				.q_offset = -0.566243f,
 				.reverese_dir = 0
 		},
-		{						//leg 4, q3
+		{//2						//leg 4, q3
 				.id = 34,
 				.q_offset = -0.315199f,
 				.reverese_dir = 0
 		},
-		{						//leg 3, q1
+		{//3						//leg 3, q1
 				.id = 21,
 				.mtn16 = {{0}},
 				.q_offset = -0.608643f,
 				.misc_cmd = LED_OFF,
 				.reverese_dir = 1
 		},
-		{						//leg 3, q2
+		{//4						//leg 3, q2
 				.id = 20,
 				.mtn16 = {{0}},
 				.q_offset = 0.823162f,
 				.misc_cmd = LED_OFF,
 				.reverese_dir = 0
 		},
-		{						//leg 3, q3
+		{//5						//leg 3, q3
 				.id = 22,
 				.mtn16 = {{0}},
 				.q_offset = 1.213853f,
 				.misc_cmd = LED_OFF,
 				.reverese_dir = 0
 		},
-		{						//leg 5, q1
+		{//6						//leg 5, q1
 				.id = 29,
 				.q_offset = -1.480469f,
 				.reverese_dir = 1
 		},
-		{						//leg 5, q2
+		{//7						//leg 5, q2
 				.id = 30,
 				.q_offset = 2.093181f,
 				.reverese_dir = 0
 		},
-		{						//leg 5, q3
+		{//8						//leg 5, q3
 				.id = 31,
 				.q_offset = -2.467299f,
 				.reverese_dir = 0
 		},
-		{						//leg 1, q1
+		{//9						//leg 1, q1
 				.id = 24,
 				.mtn16 = {{0}},
 				.ctl = {
@@ -74,7 +74,7 @@ motor_t chain[NUM_MOTORS] =
 				.misc_cmd = LED_OFF,
 				.reverese_dir = 1
 		},
-		{						//leg 1, q2
+		{//10						//leg 1, q2
 				.id = 25,
 				.mtn16 = {{0}},
 				.ctl = {
@@ -88,43 +88,43 @@ motor_t chain[NUM_MOTORS] =
 				.misc_cmd = LED_OFF,
 				.reverese_dir = 0
 		},
-		{						//leg 1, q3
+		{//11						//leg 1, q3
 				.id = 23,
 				.mtn16 = {{0}},
 				.q_offset = -0.220717f,
 				.misc_cmd = LED_OFF,
 				.reverese_dir = 0
 		},
-		{						//leg 6, q1
+		{//12						//leg 6, q1
 				.id = 36,
 				.q_offset = 0.978027f,
 				.reverese_dir = 1
 		},
-		{						//leg 6, q2
+		{//13						//leg 6, q2
 				.id = 35,
 				.q_offset = 1.709880f,
 				.reverese_dir = 0
 		},
-		{						//leg 6, q3
+		{//14						//leg 6, q3
 				.id = 37,
 				.q_offset = -0.921401f,
 				.reverese_dir = 0
 		},
-		{						//leg 2, q1
+		{//15						//leg 2, q1
 				.id = 26,
 				.mtn16 = {{0}},
 				.q_offset = -1.957520f,
 				.misc_cmd = LED_OFF,
 				.reverese_dir = 1
 		},
-		{						//leg 2, q2
+		{//16						//leg 2, q2
 				.id = 27,
 				.mtn16 = {{0}},
 				.q_offset = 1.244548f,
 				.misc_cmd = LED_OFF,
 				.reverese_dir = 0
 		},
-		{						//leg 2, q3
+		{//17						//leg 2, q3
 				.id = 28,
 				.mtn16 = {{0}},
 				.q_offset = 3.138902f,
