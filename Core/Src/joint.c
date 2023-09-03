@@ -11,17 +11,17 @@ motor_t chain[NUM_MOTORS] =
 {
 		{//0						//leg 4, q1
 				.id = 32,
-				.q_offset = -0.409668f,
+				.q_offset = -0.49f,
 				.reverese_dir = 1
 		},
 		{//1						//leg 4, q2
 				.id = 33,
-				.q_offset = -0.566243f,
+				.q_offset = -0.503743f,
 				.reverese_dir = 0
 		},
 		{//2						//leg 4, q3
 				.id = 34,
-				.q_offset = -0.315199f,
+				.q_offset = 1.681383f,
 				.reverese_dir = 0
 		},
 		{//3						//leg 3, q1

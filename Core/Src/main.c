@@ -250,21 +250,21 @@ int main(void)
 
 	for(int i = 0; i < NUM_MOTORS; i++)
 	{
-		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KP_VALUE, 3500);
+		chain[i].control_mode = SET_PCTL_VQ_MODE;
+		send_u8_val(&chain[i], SET_PCTL_VQ_MODE, 0);
+		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KP_VALUE, 7000);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KP_RADIX, 5);
+		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KI_VALUE, 1000);
+		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KI_RADIX, 7);
+		send_i32_val(&chain[i], CHANGE_PCTL_VQ_XSAT, 300);
+		send_u8_val(&chain[i], CHANGE_PCTL_VQ_OUT_RSHIFT, 11);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KD_VALUE, 10);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KD_RADIX, 6);
-		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KI_VALUE, 300);
-		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KI_RADIX, 11);
-		send_i32_val(&chain[i], CHANGE_PCTL_VQ_XSAT, 300);
-		//send_i32_val(&chain[i], CHANGE_PCTL_VQ_OUTSAT, 500);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_OUTSAT, 0);
-		send_u8_val(&chain[i], CHANGE_PCTL_VQ_OUT_RSHIFT, 11);
 
-		send_u8_val(&chain[i], SET_PCTL_VQ_MODE, 0);
-		chain[i].control_mode = SET_PCTL_VQ_MODE;
+		send_u8_val(&chain[i], EN_REVERSE_DIRECTION, 0);
 	}
-	send_i32_val(&chain[0], CHANGE_PCTL_VQ_OUTSAT, 500);
+//	send_i32_val(&chain[0], CHANGE_PCTL_VQ_OUTSAT, 500);
 	send_i32_val(&chain[1], CHANGE_PCTL_VQ_OUTSAT, 500);
 	send_i32_val(&chain[2], CHANGE_PCTL_VQ_OUTSAT, 500);
 
@@ -272,11 +272,9 @@ int main(void)
 //	chain[test_motor_idx].control_mode = SET_SINUSOIDAL_MODE;
 
 	int16_t qdes[NUM_MOTORS] = {0};
-	for(int m = 0; m < NUM_MOTORS; m++)
-	{
-		motor_t_comm(&chain[m]);
-		qdes[m] = (int16_t)get_qkinematic_from_qenc(&chain[m]);
-	}
+	qdes[0] = 0;
+	qdes[1] = (int16_t)((-17.466686f*DEG_TO_RAD)*4096.f);
+	qdes[2] = (int16_t)((-10.74216371f*DEG_TO_RAD)*4096.f);
 
 	u32_fmt_t payload[19] = {0};
 
@@ -358,8 +356,7 @@ int main(void)
 		for(int m = 0; m < NUM_MOTORS; m++)
 		{
 			motor_t * pmotor = &chain[m];
-			pmotor->mtn16.i16[m] = get_qenc_from_qkinematic(qdes[m], pmotor);
-
+			pmotor->mtn16.i16[0] = get_qenc_from_qkinematic(qdes[m], pmotor);
 			motor_t_comm(pmotor);
 		}
 
@@ -374,8 +371,6 @@ int main(void)
 			{
 				motor_t * m = &chain[i];
 				payload[i].i32 = get_qkinematic_from_qenc(m);
-
-//				payload[i].i32 = (int32_t)qdes[i];
 			}
 			payload[18].u32 = fletchers_checksum32((uint32_t*)payload, 18);
 
