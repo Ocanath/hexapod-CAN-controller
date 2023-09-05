@@ -146,6 +146,85 @@ void heartbeat_blinkall(void)
 	}
 }
 
+uint8_t do_midpoint_analysis(motor_t * j)
+{
+	send_u8_val(j, CALC_ENC_MIDPOINTS, 0);
+	if(can_rx_data.ui32[0] == 0x143833ce)
+	{
+		for(uint32_t exp_ts = HAL_GetTick()+30000;  HAL_GetTick() < exp_ts;)
+		{
+			if(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) >= 1)
+			{
+				if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can_rx_header, can_rx_data.d) == HAL_OK)
+				{
+					if(can_rx_header.StdId == 32)
+					{
+						if(can_rx_data.ui32[0] == 0xbeb8ac63)
+						{
+							return 1;
+						}
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+
+
+
+uint8_t do_align_offset_calibration(motor_t * j)
+{
+	send_u8_val(j, CALC_ALIGN_OFFSET, 0);
+	if(can_rx_data.ui32[0] == 0xAD57E3B9)
+	{
+		int32_t new_align_offset = 0;
+		int32_t prev_align_offset = 0;
+		int match_count = 0;
+		while(1)
+		{
+			while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) == 0);	//blocking wait
+			if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can_rx_header, can_rx_data.d) != HAL_OK)
+			{
+				if(can_rx_header.StdId == can_tx_header.StdId)
+				{
+					new_align_offset = can_rx_data.i32[0];
+					break;
+				}
+			}
+
+			if(prev_align_offset != new_align_offset)
+				match_count = 0;
+			else
+				match_count++;
+
+			prev_align_offset = new_align_offset;
+
+
+			if(match_count >= 20)
+			{
+				can_payload_t ctx = {0};
+				ctx.d[0] = 0xDE;
+				HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, ctx.d, &can_tx_mailbox);
+			}
+		}
+	}
+	return 0;
+}
+
+
+uint8_t save_flash_mem(motor_t * j)
+{
+	send_u8_val(j, CMD_WRITE_FLASH, 0);
+	if(can_rx_data.ui32[0] == 0xDEADBEEF)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+
 void blink_motors_in_chain(void);
 
 int main(void)
@@ -156,7 +235,7 @@ int main(void)
 	SystemClock_Config();
 
 	MX_GPIO_Init();
-//	MX_ADC1_Init();
+	//	MX_ADC1_Init();
 	HAL_Delay(100);
 	CAN_Init();
 	//	MX_CAN1_Init();
@@ -184,12 +263,12 @@ int main(void)
 	forward_kinematics_dynahexleg(&hexapod);
 
 	vect3_t targs[6] = {
-		{{332.5646f, -233.385513f, 5.380200f}},
-		{{ 368.400146, 171.316727, 5.380200}},
-		{{35.835365, 404.702271, 5.380200}},
-		{{-332.564697, 233.385468, 5.380200}},
-		{{ -368.400085, -171.316803, 5.380200}},
-		{{-35.835426,  -404.702271, 5.380200 }}
+			{{332.5646f, -233.385513f, 5.380200f}},
+			{{ 368.400146, 171.316727, 5.380200}},
+			{{35.835365, 404.702271, 5.380200}},
+			{{-332.564697, 233.385468, 5.380200}},
+			{{ -368.400085, -171.316803, 5.380200}},
+			{{-35.835426,  -404.702271, 5.380200 }}
 	};
 	volatile uint32_t ik_start_ts = HAL_GetTick();
 	vect3_t zero = { {0,0,0} };
@@ -215,7 +294,7 @@ int main(void)
 		rgb_t rgb = {c,c,c};
 		rgb_play(rgb);
 	}
-//	motor_t_comm_misc(chain);
+	//	motor_t_comm_misc(chain);
 
 	heartbeat_blinkall();
 	HAL_Delay(300);
@@ -237,16 +316,17 @@ int main(void)
 
 	ctl_params_t template_ctl =
 	{
-		.kp = 1000.f,
-		.tau_sat = 1500.f,
+			.kp = 1000.f,
+			.tau_sat = 1500.f,
 
-		.ki_div = 3.f,
-		.x_sat = 1500.f,
+			.ki_div = 3.f,
+			.x_sat = 1500.f,
 
-		.x_pi = 0
+			.x_pi = 0
 	};
 	m_mcpy(&chain[0].ctl, &template_ctl,sizeof(ctl_params_t));
 	m_mcpy(&chain[1].ctl, &template_ctl,sizeof(ctl_params_t));
+
 
 	for(int i = 0; i < NUM_MOTORS; i++)
 	{
@@ -264,12 +344,12 @@ int main(void)
 
 		send_u8_val(&chain[i], EN_REVERSE_DIRECTION, 0);
 	}
-//	send_i32_val(&chain[0], CHANGE_PCTL_VQ_OUTSAT, 500);
+	send_i32_val(&chain[0], CHANGE_PCTL_VQ_OUTSAT, 500);
 	send_i32_val(&chain[1], CHANGE_PCTL_VQ_OUTSAT, 500);
 	send_i32_val(&chain[2], CHANGE_PCTL_VQ_OUTSAT, 500);
 
-//	send_u8_val(&chain[test_motor_idx], SET_SINUSOIDAL_MODE, 0);
-//	chain[test_motor_idx].control_mode = SET_SINUSOIDAL_MODE;
+	//	send_u8_val(&chain[test_motor_idx], SET_SINUSOIDAL_MODE, 0);
+	//	chain[test_motor_idx].control_mode = SET_SINUSOIDAL_MODE;
 
 	int16_t qdes[NUM_MOTORS] = {0};
 	qdes[0] = 0;
@@ -310,7 +390,7 @@ int main(void)
 			htmatrix_vect3_mult(&zrot, &tmp, &foot_xy_2);	//done 2
 
 
-//			int leg = 0;
+			//			int leg = 0;
 			for(int leg = 0; leg < NUM_LEGS; leg++)
 			{
 				mat4_t lrot = Hz((TWO_PI / 6.f) * (float)leg);
@@ -342,16 +422,16 @@ int main(void)
 		}
 		ik_end_ts = HAL_GetTick();
 		/*uncomment to map kinematics to qdes*/
-//		int pld_idx = 0;
-//		for(int leg = 0; leg < NUM_LEGS; leg++)
-//		{
-//			joint * j = &hexapod.leg[leg].chain[1];
-//			for(int i = 0; i < 3; i++)
-//			{
-//				qdes[pld_idx++] = (int16_t)(j->q*4096.f);
-//				j = j->child;
-//			}
-//		}
+		//		int pld_idx = 0;
+		//		for(int leg = 0; leg < NUM_LEGS; leg++)
+		//		{
+		//			joint * j = &hexapod.leg[leg].chain[1];
+		//			for(int i = 0; i < 3; i++)
+		//			{
+		//				qdes[pld_idx++] = (int16_t)(j->q*4096.f);
+		//				j = j->child;
+		//			}
+		//		}
 
 		for(int m = 0; m < NUM_MOTORS; m++)
 		{
@@ -377,17 +457,17 @@ int main(void)
 			m_uart_tx_start(&m_huart2, (uint8_t*)payload, sizeof(u32_fmt_t)*19 );
 		}
 
-//test function for centralized position control
-//		{
-//			float e = wrap_2pi(hexapod.leg[0].chain[1].q - chain[0].q);
-//			float vq = ctl_PI(e, &chain[0].ctl);
-//			chain[0].mtn16.i16[0] = (int16_t)vq;
-//		}
-//		{
-//			float e = wrap_2pi(hexapod.leg[0].chain[2].q - chain[1].q);
-//			float vq = ctl_PI(e, &chain[1].ctl);
-//			chain[1].mtn16.i16[0] = (int16_t)vq;
-//		}
+		//test function for centralized position control
+		//		{
+		//			float e = wrap_2pi(hexapod.leg[0].chain[1].q - chain[0].q);
+		//			float vq = ctl_PI(e, &chain[0].ctl);
+		//			chain[0].mtn16.i16[0] = (int16_t)vq;
+		//		}
+		//		{
+		//			float e = wrap_2pi(hexapod.leg[0].chain[2].q - chain[1].q);
+		//			float vq = ctl_PI(e, &chain[1].ctl);
+		//			chain[1].mtn16.i16[0] = (int16_t)vq;
+		//		}
 	}
 }
 
@@ -605,10 +685,10 @@ void blink_motors_in_chain(void)
 				can_tx_ts = HAL_GetTick()+0;
 			else
 				can_tx_ts = HAL_GetTick()+50;
-//			if(chain[led_idx].responsive==1)
-//			{
-//				break;
-//			}
+			//			if(chain[led_idx].responsive==1)
+			//			{
+			//				break;
+			//			}
 		}
 
 		if(led_idx < NUM_MOTORS)

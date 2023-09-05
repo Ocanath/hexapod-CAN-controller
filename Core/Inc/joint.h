@@ -18,9 +18,38 @@
 #define NUM_MOTORS 18
 
 enum {
+
 	CALC_ALIGN_OFFSET = 0x1,
 	CALC_ENC_MIDPOINTS = 0x2,
 
+	CHANGE_AC_VQ = 0x4,
+	CHANGE_AC_RUNTIME = 0x5,
+	CHANGE_AC_GAIN = 0x6,	//ignore passthresh for now.
+
+	CHANGE_ALIGN_OFFSET = 0x7,
+
+	/*The following are settings that MUST be loaded which are for flash memory.
+	 * Offloading records to the CAN master is not a bad idea honestly*/
+	SET_ELEC_CONV_RATIO_FIXED = 0x8,
+	SET_GL_PROP_DELAYLOOP_INTERVAL = 0x9,
+	SET_GL_PROP_DELAY_CONST_12B = 0xA,
+	SET_IQ_PI_KP_I32 = 0xB,
+	SET_IQ_PI_KP_RADIX = 0xC,
+	SET_IQ_PI_KI_I32 = 0xD,
+	SET_IQ_PI_KI_RADIX = 0xE,
+	SET_IQ_PI_X_SAT = 0xF,
+	SET_IQ_PI_OUT_RSHIFT = 0x10,
+	SET_ID_PI_KP_I32 = 0x11,
+	SET_ID_PI_KP_RADIX = 0x12,
+	SET_ID_PI_KI_I32 = 0x13,
+	SET_ID_PI_KI_RADIX = 0x14,
+	SET_ID_PI_X_SAT = 0x15,
+	SET_ID_PI_OUT_RSHIFT = 0x16,
+
+	CMD_WRITE_FLASH = 0x17,	//it's important this only triggers once
+	CMD_RESTART = 0x18,	//restart microcontroller
+
+	SET_CAN_ID = 0x19,	//change the CAN ID over CAN. in theory, this should only take effect on a power cycle. NEEDS TESTING
 
 	LED_ON = 0xDE,
 	LED_OFF =0xFE,
@@ -56,7 +85,6 @@ enum {
 	CHANGE_PCTL_VQ_XSAT = 0x51,
 	CHANGE_PCTL_VQ_OUTSAT = 0x52,
 	CHANGE_PCTL_VQ_OUT_RSHIFT = 0x53,
-
 
 	EN_REVERSE_DIRECTION = 0x54,
 	DIS_REVERSE_DIRECTION = 0x55
