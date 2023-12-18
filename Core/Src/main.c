@@ -22,17 +22,17 @@ static uint32_t can_tx_ts = 0;
 int32_t get_qkinematic_from_qenc(motor_t * m)
 {
 	int32_t offset = (int32_t)(m->q_offset*4096.f);
-	if(m->reverese_dir == 0)
-		return (m->q16 - offset);
+	if(m->negate_aenc == 0)
+		return wrap_2pi_12b(m->q16 - offset);
 	else
-		return -(m->q16 - offset);
+		return -wrap_2pi_12b(m->q16 - offset);
 }
 
 
 int32_t get_qenc_from_qkinematic(int32_t qkinematic, motor_t * m)
 {
 	int32_t offset = (int32_t)(m->q_offset*4096.f);
-	if(m->reverese_dir == 0)
+	if(m->reverse_dir == 0)
 		return (qkinematic + offset);
 	else
 		return  (offset - qkinematic);	//algembras
@@ -343,7 +343,10 @@ int main(void)
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KD_RADIX, 6);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_OUTSAT, 0);
 
-		send_u8_val(&chain[i], EN_REVERSE_DIRECTION, 0);
+		if(chain[i].reverse_dir)
+			send_u8_val(&chain[i], EN_REVERSE_DIRECTION, 0);
+		else
+			send_u8_val(&chain[i], DIS_REVERSE_DIRECTION, 0);
 	}
 	send_i32_val(&chain[0], CHANGE_PCTL_VQ_OUTSAT, 500);
 	send_i32_val(&chain[1], CHANGE_PCTL_VQ_OUTSAT, 500);
@@ -354,7 +357,7 @@ int main(void)
 
 	int16_t qdes[NUM_MOTORS] = {0};
 	qdes[0] = 0;
-	qdes[1] = (int16_t)((-17.466686f*DEG_TO_RAD)*4096.f);
+	qdes[1] = (int16_t)((1.27f)*4096.f);
 	qdes[2] = (int16_t)((-10.74216371f*DEG_TO_RAD)*4096.f);
 
 	u32_fmt_t payload[19] = {0};

@@ -12,53 +12,62 @@ motor_t chain[NUM_MOTORS] =
 		{//0						//leg 4, q1
 				.id = 32,
 				.q_offset = -0.49f,
-				.reverese_dir = 1
+				.reverse_dir = 1,
+				.negate_aenc = 1
 		},
 		{//1						//leg 4, q2
 				.id = 33,
-				.q_offset = -0.503743f,
-				.reverese_dir = 0
+				.q_offset = -1.599934f,
+				.reverse_dir = 0,
+				.negate_aenc = 0
 		},
 		{//2						//leg 4, q3
 				.id = 34,
 				.q_offset = 1.681383f,
-				.reverese_dir = 0
+				.reverse_dir = 1,
+				.negate_aenc = 0
 		},
 		{//3						//leg 3, q1
 				.id = 21,
 				.mtn16 = {{0}},
 				.q_offset = -0.608643f,
 				.misc_cmd = LED_OFF,
-				.reverese_dir = 1
+				.reverse_dir = 1,
+				.negate_aenc = 1
 		},
 		{//4						//leg 3, q2
 				.id = 20,
 				.mtn16 = {{0}},
 				.q_offset = 0.823162f,
 				.misc_cmd = LED_OFF,
-				.reverese_dir = 0
+				.reverse_dir = 0,
+				.negate_aenc = 0
 		},
 		{//5						//leg 3, q3
 				.id = 22,
 				.mtn16 = {{0}},
 				.q_offset = 1.213853f,
 				.misc_cmd = LED_OFF,
-				.reverese_dir = 0
+				.reverse_dir = 1,
+				.negate_aenc = 0
 		},
 		{//6						//leg 5, q1
 				.id = 29,
 				.q_offset = -1.480469f,
-				.reverese_dir = 1
+				.reverse_dir = 1,
+				.negate_aenc = 1
 		},
 		{//7						//leg 5, q2
 				.id = 30,
-				.q_offset = 2.093181f,
-				.reverese_dir = 0
+				.q_offset = 2.093181f-0.5f,
+				.reverse_dir = 0,
+				.negate_aenc = 0
 		},
 		{//8						//leg 5, q3
 				.id = 31,
 				.q_offset = -2.467299f,
-				.reverese_dir = 0
+				.reverse_dir = 1,
+				.negate_aenc = 0
 		},
 		{//9						//leg 1, q1
 				.id = 24,
@@ -72,7 +81,8 @@ motor_t chain[NUM_MOTORS] =
 				},
 				.q_offset = 1.317627f,
 				.misc_cmd = LED_OFF,
-				.reverese_dir = 1
+				.reverse_dir = 1,
+				.negate_aenc = 1
 		},
 		{//10						//leg 1, q2
 				.id = 25,
@@ -86,50 +96,58 @@ motor_t chain[NUM_MOTORS] =
 				},
 				.q_offset = 0.565593f,
 				.misc_cmd = LED_OFF,
-				.reverese_dir = 0
+				.reverse_dir = 0,
+				.negate_aenc = 0
 		},
 		{//11						//leg 1, q3
 				.id = 23,
 				.mtn16 = {{0}},
 				.q_offset = -0.220717f,
 				.misc_cmd = LED_OFF,
-				.reverese_dir = 0
+				.reverse_dir = 1,
+				.negate_aenc = 0
 		},
 		{//12						//leg 6, q1
 				.id = 36,
 				.q_offset = 0.978027f,
-				.reverese_dir = 1
+				.reverse_dir = 1,
+				.negate_aenc = 1
 		},
 		{//13						//leg 6, q2
 				.id = 35,
 				.q_offset = 1.709880f,
-				.reverese_dir = 0
+				.reverse_dir = 0,
+				.negate_aenc = 0
 		},
 		{//14						//leg 6, q3
 				.id = 37,
 				.q_offset = -0.921401f,
-				.reverese_dir = 0
+				.reverse_dir = 1,
+				.negate_aenc = 0
 		},
 		{//15						//leg 2, q1
 				.id = 26,
 				.mtn16 = {{0}},
 				.q_offset = -1.957520f,
 				.misc_cmd = LED_OFF,
-				.reverese_dir = 1
+				.reverse_dir = 1,
+				.negate_aenc = 1
 		},
 		{//16						//leg 2, q2
 				.id = 27,
 				.mtn16 = {{0}},
 				.q_offset = 1.244548f,
 				.misc_cmd = LED_OFF,
-				.reverese_dir = 0
+				.reverse_dir = 0,
+				.negate_aenc = 0
 		},
 		{//17						//leg 2, q3
 				.id = 28,
 				.mtn16 = {{0}},
 				.q_offset = 3.138902f,
 				.misc_cmd = LED_OFF,
-				.reverese_dir = 0
+				.reverse_dir = 1,
+				.negate_aenc = 0
 		}
 };
 
