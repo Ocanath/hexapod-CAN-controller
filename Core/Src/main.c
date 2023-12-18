@@ -11,6 +11,7 @@
 #include "kinematics.h"
 #include "dynahex.h"
 #include "m_mcpy.h"
+#include "PPP.h"
 #include <string.h>
 
 
@@ -357,7 +358,6 @@ int main(void)
 	qdes[2] = (int16_t)((-10.74216371f*DEG_TO_RAD)*4096.f);
 
 	u32_fmt_t payload[19] = {0};
-
 	heartbeat_blinkall();
 	HAL_Delay(300);
 
@@ -447,27 +447,16 @@ int main(void)
 		{
 			disp_ts = HAL_GetTick() + 15;
 
+			int bidx = 0;
 			for(int i = 0; i < NUM_MOTORS; i++)
 			{
 				motor_t * m = &chain[i];
 				payload[i].i32 = get_qkinematic_from_qenc(m);
+				bidx += sizeof(payload[i].i32);
 			}
-			payload[18].u32 = fletchers_checksum32((uint32_t*)payload, 18);
-
-			m_uart_tx_start(&m_huart2, (uint8_t*)payload, sizeof(u32_fmt_t)*19 );
+			int stuffed_size = PPP_stuff((uint8_t*)(&payload), bidx, gl_ppp_stuff_buffer,STUFF_BUFFER_SIZE);
+			m_uart_tx_start(&m_huart2, (uint8_t*)gl_ppp_stuff_buffer, stuffed_size );
 		}
-
-		//test function for centralized position control
-		//		{
-		//			float e = wrap_2pi(hexapod.leg[0].chain[1].q - chain[0].q);
-		//			float vq = ctl_PI(e, &chain[0].ctl);
-		//			chain[0].mtn16.i16[0] = (int16_t)vq;
-		//		}
-		//		{
-		//			float e = wrap_2pi(hexapod.leg[0].chain[2].q - chain[1].q);
-		//			float vq = ctl_PI(e, &chain[1].ctl);
-		//			chain[1].mtn16.i16[0] = (int16_t)vq;
-		//		}
 	}
 }
 
