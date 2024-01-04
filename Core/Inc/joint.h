@@ -148,8 +148,9 @@ extern motor_t chain[NUM_MOTORS];
 
 float wrap(float in);
 int motor_t_comm_misc(motor_t * chain);
-int motor_t_comm(motor_t * j);
-void chain_comm(motor_t * chain, int num_motor_ts);
+void motor_t_get(motor_t * gl_chain, int chain_size);
+void motor_put_wait(void);
+void motor_t_put(motor_t * j);
 uint32_t get_ts_us(void);
 int32_t wrap_fixed(int32_t in, uint32_t k);
 

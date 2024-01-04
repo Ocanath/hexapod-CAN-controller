@@ -348,9 +348,9 @@ int main(void)
 		else
 			send_u8_val(&chain[i], DIS_REVERSE_DIRECTION, 0);
 	}
-	send_i32_val(&chain[0], CHANGE_PCTL_VQ_OUTSAT, 500);
-	send_i32_val(&chain[1], CHANGE_PCTL_VQ_OUTSAT, 500);
-	send_i32_val(&chain[2], CHANGE_PCTL_VQ_OUTSAT, 500);
+//	send_i32_val(&chain[0], CHANGE_PCTL_VQ_OUTSAT, 500);
+//	send_i32_val(&chain[1], CHANGE_PCTL_VQ_OUTSAT, 500);
+//	send_i32_val(&chain[2], CHANGE_PCTL_VQ_OUTSAT, 500);
 
 	//	send_u8_val(&chain[test_motor_idx], SET_SINUSOIDAL_MODE, 0);
 	//	chain[test_motor_idx].control_mode = SET_SINUSOIDAL_MODE;
@@ -440,8 +440,44 @@ int main(void)
 		{
 			motor_t * pmotor = &chain[m];
 			pmotor->mtn16.i16[0] = get_qenc_from_qkinematic(qdes[m], pmotor);
-			motor_t_comm(pmotor);
+			motor_t_put(pmotor);
+			motor_put_wait();
+			uint32_t del_ts = HAL_GetTick();
+			while( (HAL_GetTick() - del_ts) < 1)
+				motor_t_get(chain, NUM_MOTORS);
 		}
+
+		/*This should be in an interrupt handler, not in the main loop.
+		 * TODO: PUT THIS IN AN INTERRUPT HANDLER!!!!!
+		 *
+		 * PUT
+		 *
+		 * THIS
+		 *
+		 * IN
+		 *
+		 * AN
+		 *
+		 * INTERRUPT
+		 *
+		 * HANDLER
+		 *
+		 * AND
+		 *
+		 * SMOKE
+		 *
+		 * IT
+		 *
+		 * YOU
+		 *
+		 * FUCK
+		 *
+		 * GODDAMN
+		 *
+		 * SHIT
+		 *
+		 * */
+		motor_t_get(chain, NUM_MOTORS);
 
 		/*This interferes with i16 encoder reception on joint id 24 and possibly 25*/
 		blink_motors_in_chain();
@@ -646,7 +682,11 @@ void can_network_keyboard_discovery(void)
 			sprintf(gl_print_str, "kbin = %c, id = %d, qenc = %d, raw = 0x%.4X\r\n", uart_cmd, can_node_discovery_idx, (int)(kb_j.q*1000.f), (unsigned int)can_rx_data.ui32[0]);
 			print_string(gl_print_str);
 		}
-		motor_t_comm(&kb_j);
+		motor_t_put(&kb_j);
+		motor_put_wait();
+		uint32_t del_ts = HAL_GetTick();
+		while( (HAL_GetTick() - del_ts) < 1)
+			motor_t_get(chain, NUM_MOTORS);
 	}
 
 }

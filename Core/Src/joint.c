@@ -293,7 +293,7 @@ void load_can_list(void)
  *
  * TODO: make nonblocking timeout, or just do a straight up interrupt version
  */
-int motor_t_comm(motor_t * j)
+void motor_t_put(motor_t * j)
 {
 	can_tx_header.StdId = j->id;
 	if( (j->control_mode == SET_PCTL_VQ_MODE || j->control_mode == SET_PCTL_IQ_MODE) && j->encoder_mode == DIS_UART_ENC)
@@ -306,60 +306,38 @@ int motor_t_comm(motor_t * j)
 	}
 	HAL_CAN_AddTxMessage(&hcan1, &can_tx_header, j->mtn16.d, &can_tx_mailbox);
 
+
+}
+void motor_put_wait(void)
+{
 	for(uint32_t exp_ts = HAL_GetTick()+1; HAL_GetTick() < exp_ts;)
 	{
 		if(HAL_CAN_IsTxMessagePending(&hcan1, can_tx_mailbox) == 0)
 			break;
 	}
+}
 
-	int node_responsive = 0;
-	int wrong_node = 0;
-	int timed_out = 1;
-	for(uint32_t exp_ts = HAL_GetTick()+2;  HAL_GetTick() < exp_ts;)
+
+
+/*Make sure all joints in the robot are in one continuous
+ * array structure.*/
+void motor_t_get(motor_t * gl_chain, int chain_size)
+{
+	if(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) >= 1)
 	{
-		if(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) >= 1)
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can_rx_header, can_rx_data.d) == HAL_OK)
 		{
-			if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can_rx_header, can_rx_data.d) == HAL_OK)
+			int jid = can_rx_header.StdId;
+			for(int i = 0; i < chain_size; i++)
 			{
-				timed_out = 0;
-				exp_ts = 0;
-				if(can_rx_header.StdId == j->id)
+				motor_t * j = &gl_chain[i];
+				if(jid == j->id)
 				{
-					node_responsive = 1;
 					update_motor_t_from_can_data(&can_rx_data, j);
-				}
-				else
-				{
-					wrong_node = 1;
+					j->responsive = 1;
 				}
 			}
 		}
-	}
-	j->responsive = node_responsive;
-	return (node_responsive) | (timed_out << 1) | (wrong_node << 2);	//return msg of 1 is all good.
-}
-
-void chain_comm(motor_t * chain, int num_motor_ts)
-{
-	for(int i = 0; i < num_motor_ts; i++)
-	{
-		int rc = motor_t_comm(&chain[i]);
-		//		if(rc != 1)
-		//		{
-		//			uint8_t timed_out = (rc & (1 << 1)) >> 1;
-		//			if(chain[i].responsive == 0 && timed_out == 0)	//means a different node responded
-		//			{
-		//				for(int j = 0; j < num_motor_ts; j++)
-		//				{
-		//					int lki = (j + i) % num_motor_ts;
-		//					motor_t * pj = &chain[lki];
-		//					if(can_rx_header.StdId == pj->id)
-		//					{
-		//						update_motor_t_from_can_data(&can_rx_data,pj);
-		//					}
-		//				}
-		//			}
-		//		}
 	}
 }
 
