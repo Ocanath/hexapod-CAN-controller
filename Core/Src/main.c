@@ -360,7 +360,7 @@ int main(void)
 	qdes[1] = (int16_t)(((-17.46668627f * DEG_TO_RAD))*4096.f);
 	qdes[2] = (int16_t)((-10.74216371f*DEG_TO_RAD)*4096.f);
 
-	u32_fmt_t payload[19] = {0};
+	u32_fmt_t payload[64] = {0};
 	heartbeat_blinkall();
 	HAL_Delay(300);
 
@@ -476,6 +476,8 @@ int main(void)
 		 *
 		 * SHIT
 		 *
+		 *
+		 *nevermind don't do that ur chillin homie dang
 		 * */
 		motor_t_get(chain, NUM_MOTORS);
 
@@ -486,14 +488,17 @@ int main(void)
 		{
 			disp_ts = HAL_GetTick() + 15;
 
-			int bidx = 0;
+			int pld_idx = 0;
 			for(int i = 0; i < NUM_MOTORS; i++)
 			{
 				motor_t * m = &chain[i];
-				payload[i].i32 = get_qkinematic_from_qenc(m);
-				bidx += sizeof(payload[i].i32);
+				payload[pld_idx++].i32 = get_qkinematic_from_qenc(m);
 			}
-			int stuffed_size = PPP_stuff((uint8_t*)(&payload), bidx, gl_ppp_stuff_buffer,STUFF_BUFFER_SIZE);
+			for(int m = 0; m < NUM_MOTORS; m++)
+			{
+				payload[pld_idx++].i32 = qdes[m];
+			}
+			int stuffed_size = PPP_stuff((uint8_t*)(&payload), pld_idx*sizeof(int32_t), gl_ppp_stuff_buffer,STUFF_BUFFER_SIZE);
 			m_uart_tx_start(&m_huart2, (uint8_t*)gl_ppp_stuff_buffer, stuffed_size );
 		}
 	}
