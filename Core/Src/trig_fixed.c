@@ -129,7 +129,7 @@ int32_t cos_lookup(int32_t theta, int result_order)
 }
 
 
-int32_t atan2_fixed(int32_t y, int32_t x)
+int32_t atan2_12b(int32_t y, int32_t x)
 {
     //assert(isa(y, 'int32') & isa(x, 'int32'), 'Error: inputs must be of type int32');
 

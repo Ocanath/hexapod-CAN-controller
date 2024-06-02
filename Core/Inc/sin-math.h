@@ -8,6 +8,7 @@
 #ifndef SIN_MATH_H_
 #define SIN_MATH_H_
 #include <stdio.h>
+#include <stdint.h>
 
 #define ONE_BY_THREE_FACTORIAL 	0.16666666666f
 #define ONE_BY_FIVE_FACTORIAL 	0.00833333333f
