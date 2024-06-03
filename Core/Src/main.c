@@ -494,10 +494,10 @@ int main(void)
 				motor_t * m = &chain[i];
 				payload[pld_idx++].i32 = get_qkinematic_from_qenc(m);
 			}
-			for(int m = 0; m < NUM_MOTORS; m++)
-			{
-				payload[pld_idx++].i32 = qdes[m];
-			}
+//			for(int m = 0; m < NUM_MOTORS; m++)
+//			{
+//				payload[pld_idx++].i32 = qdes[m];
+//			}
 			int stuffed_size = PPP_stuff((uint8_t*)(&payload), pld_idx*sizeof(int32_t), gl_ppp_stuff_buffer,STUFF_BUFFER_SIZE);
 			m_uart_tx_start(&m_huart2, (uint8_t*)gl_ppp_stuff_buffer, stuffed_size );
 		}
