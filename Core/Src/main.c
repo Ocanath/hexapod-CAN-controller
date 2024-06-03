@@ -333,17 +333,18 @@ int main(void)
 	{
 		chain[i].control_mode = SET_PCTL_VQ_MODE;
 		send_u8_val(&chain[i], SET_PCTL_VQ_MODE, 0);
-		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KP_VALUE, 12000);
+		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KP_VALUE, 14000);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KP_RADIX, 5);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KI_VALUE, 100);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KI_RADIX, 6);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_XINTEGRALDIV, 1);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_XSAT, 0);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_OUT_RSHIFT, 11);
+		int32_t damping = 30;
 		if(chain[i].reverse_dir)
-			send_i32_val(&chain[i], CHANGE_PCTL_VQ_KD_VALUE, -25);
+			send_i32_val(&chain[i], CHANGE_PCTL_VQ_KD_VALUE, -damping);
 		else
-			send_i32_val(&chain[i], CHANGE_PCTL_VQ_KD_VALUE, 25);
+			send_i32_val(&chain[i], CHANGE_PCTL_VQ_KD_VALUE, damping);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KD_RADIX, 5);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_OUTSAT, 0);
 
