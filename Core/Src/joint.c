@@ -60,7 +60,7 @@ motor_t chain[NUM_MOTORS] =
 		{//7						//leg 5, q2
 				.id = 30,
 				.q_offset = 2.093181f-0.5f,
-				.reverse_dir = 0,
+				.reverse_dir = 1,
 				.negate_aenc = 0
 		},
 		{//8						//leg 5, q3

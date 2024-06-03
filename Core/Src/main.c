@@ -335,11 +335,15 @@ int main(void)
 		send_u8_val(&chain[i], SET_PCTL_VQ_MODE, 0);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KP_VALUE, 12000);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KP_RADIX, 5);
-		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KI_VALUE, 800);
+		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KI_VALUE, 100);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KI_RADIX, 6);
+		send_i32_val(&chain[i], CHANGE_PCTL_VQ_XINTEGRALDIV, 1);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_XSAT, 0);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_OUT_RSHIFT, 11);
-		send_i32_val(&chain[i], CHANGE_PCTL_VQ_KD_VALUE, 20);
+		if(chain[i].reverse_dir)
+			send_i32_val(&chain[i], CHANGE_PCTL_VQ_KD_VALUE, -25);
+		else
+			send_i32_val(&chain[i], CHANGE_PCTL_VQ_KD_VALUE, 25);
 		send_u8_val(&chain[i], CHANGE_PCTL_VQ_KD_RADIX, 5);
 		send_i32_val(&chain[i], CHANGE_PCTL_VQ_OUTSAT, 0);
 
@@ -348,22 +352,31 @@ int main(void)
 		else
 			send_u8_val(&chain[i], DIS_REVERSE_DIRECTION, 0);
 	}
-	send_i32_val(&chain[0], CHANGE_PCTL_VQ_OUTSAT, 500);
-	send_i32_val(&chain[1], CHANGE_PCTL_VQ_OUTSAT, 500);
-	send_i32_val(&chain[2], CHANGE_PCTL_VQ_OUTSAT, 500);
+	//load up targets
+	int16_t qdes[NUM_MOTORS] = {0};
+	for(int m = 0; m < NUM_MOTORS; m++)
+	{
+		motor_t * pmotor = &chain[m];
+		pmotor->mtn16.i16[0] = get_qenc_from_qkinematic(qdes[m], pmotor);
+		motor_t_put(pmotor);
+		motor_put_wait();
+		uint32_t del_ts = HAL_GetTick();
+		while( (HAL_GetTick() - del_ts) < 1)
+			motor_t_get(chain, NUM_MOTORS);
+	}
+	//enable motors
+	send_i32_val(&chain[6], CHANGE_PCTL_VQ_OUTSAT, 600);
+	send_i32_val(&chain[6], CHANGE_PCTL_VQ_XSAT, 500);
+	send_i32_val(&chain[7], CHANGE_PCTL_VQ_OUTSAT, 600);
+	send_i32_val(&chain[7], CHANGE_PCTL_VQ_XSAT, 500);
+	send_i32_val(&chain[8], CHANGE_PCTL_VQ_OUTSAT, 600);
 
 	//	send_u8_val(&chain[test_motor_idx], SET_SINUSOIDAL_MODE, 0);
 	//	chain[test_motor_idx].control_mode = SET_SINUSOIDAL_MODE;
 
-	int16_t qdes[NUM_MOTORS] = {0};
-	qdes[0] = 0;
-	qdes[1] = (int16_t)(((-17.46668627f * DEG_TO_RAD))*4096.f);
-	qdes[2] = (int16_t)((-10.74216371f*DEG_TO_RAD)*4096.f);
+
 
 	u32_fmt_t payload[64] = {0};
-	heartbeat_blinkall();
-	HAL_Delay(300);
-
 	uint32_t disp_ts = 0;
 	while(1)
 	{
@@ -494,10 +507,10 @@ int main(void)
 				motor_t * m = &chain[i];
 				payload[pld_idx++].i32 = get_qkinematic_from_qenc(m);
 			}
-//			for(int m = 0; m < NUM_MOTORS; m++)
-//			{
-//				payload[pld_idx++].i32 = qdes[m];
-//			}
+			for(int m = 0; m < NUM_MOTORS; m++)
+			{
+				payload[pld_idx++].i32 = qdes[m];
+			}
 			int stuffed_size = PPP_stuff((uint8_t*)(&payload), pld_idx*sizeof(int32_t), gl_ppp_stuff_buffer,STUFF_BUFFER_SIZE);
 			m_uart_tx_start(&m_huart2, (uint8_t*)gl_ppp_stuff_buffer, stuffed_size );
 		}
