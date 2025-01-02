@@ -227,6 +227,8 @@ uint8_t save_flash_mem(motor_t * j)
 
 
 void blink_motors_in_chain(void);
+dynahex_t hexapod;
+int16_t qdes[NUM_MOTORS] = {0};
 
 int main(void)
 {
@@ -252,7 +254,6 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 
 
-	dynahex_t hexapod;
 	init_dynahex_kinematics(&hexapod);
 	for(int leg = 0; leg < 6; leg++)
 	{
@@ -353,7 +354,6 @@ int main(void)
 			send_u8_val(&chain[i], DIS_REVERSE_DIRECTION, 0);
 	}
 	//load up targets
-	int16_t qdes[NUM_MOTORS] = {0};
 	for(int m = 0; m < NUM_MOTORS; m++)
 	{
 		motor_t * pmotor = &chain[m];
@@ -379,6 +379,7 @@ int main(void)
 	send_i32_val(&chain[7], CHANGE_PCTL_VQ_OUTSAT, 600);
 	send_i32_val(&chain[7], CHANGE_PCTL_VQ_XSAT, 500);
 	send_i32_val(&chain[8], CHANGE_PCTL_VQ_OUTSAT, 600);
+	send_i32_val(&chain[8], CHANGE_PCTL_VQ_XSAT, 500);
 
 	send_i32_val(&chain[3], CHANGE_PCTL_VQ_OUTSAT, 600);
 	send_i32_val(&chain[3], CHANGE_PCTL_VQ_XSAT, 500);
@@ -388,9 +389,15 @@ int main(void)
 	send_i32_val(&chain[5], CHANGE_PCTL_VQ_XSAT, 500);
 	send_i32_val(&chain[5], CHANGE_PCTL_VQ_KD_VALUE, -damping);
 
+	send_i32_val(&chain[9], CHANGE_PCTL_VQ_OUTSAT, 600);
+	send_i32_val(&chain[9], CHANGE_PCTL_VQ_XSAT, 500);
+//	send_i32_val(&chain[10], CHANGE_PCTL_VQ_OUTSAT, 600);
+//	send_i32_val(&chain[10], CHANGE_PCTL_VQ_XSAT, 500);
 
-	//	send_u8_val(&chain[test_motor_idx], SET_SINUSOIDAL_MODE, 0);
-	//	chain[test_motor_idx].control_mode = SET_SINUSOIDAL_MODE;
+
+	send_i32_val(&chain[15], CHANGE_PCTL_VQ_OUTSAT, 600);
+	send_i32_val(&chain[15], CHANGE_PCTL_VQ_XSAT, 500);
+	send_i32_val(&chain[15], CHANGE_PCTL_VQ_KD_VALUE, -damping);
 
 
 
@@ -406,7 +413,7 @@ int main(void)
 		{
 			vect3_t foot_xy_1;
 			float h = 40; float w = 100;
-			float period = 2.f;
+			float period = 20.f;
 			foot_path(time, h, w, period, &foot_xy_1);
 
 			vect3_t foot_xy_2;
@@ -456,16 +463,16 @@ int main(void)
 		}
 		ik_end_ts = HAL_GetTick();
 		/*uncomment to map kinematics to qdes*/
-		//		int pld_idx = 0;
-		//		for(int leg = 0; leg < NUM_LEGS; leg++)
-		//		{
-		//			joint * j = &hexapod.leg[leg].chain[1];
-		//			for(int i = 0; i < 3; i++)
-		//			{
-		//				qdes[pld_idx++] = (int16_t)(j->q*4096.f);
-		//				j = j->child;
-		//			}
-		//		}
+//		int pld_idx = 0;
+//		for(int leg = 0; leg < NUM_LEGS; leg++)
+//		{
+//			joint * j = &hexapod.leg[leg].chain[1];
+//			for(int i = 0; i < 3; i++)
+//			{
+//				qdes[pld_idx++] = (int16_t)(j->q*4096.f);
+//				j = j->child;
+//			}
+//		}
 
 		for(int m = 0; m < NUM_MOTORS; m++)
 		{
