@@ -30,7 +30,7 @@ motor_t chain[NUM_MOTORS] =
 		{//3						//leg 3, q1
 				.id = 21,
 				.mtn16 = {{0}},
-				.q_offset = -0.608643f,
+				.q_offset = -1.422363f,
 				.misc_cmd = LED_OFF,
 				.reverse_dir = 1,
 				.negate_aenc = 1
@@ -71,32 +71,14 @@ motor_t chain[NUM_MOTORS] =
 		},
 		{//9						//leg 1, q1
 				.id = 24,
-				.mtn16 = {{0}},
-				.ctl = {
-						.kp = 9.f,
-						.ki_div = 377.f,
-						.x_pi = 0,
-						.x_sat = 1.5f,
-						.tau_sat = 0.85f
-				},
 				.q_offset = 1.317627f,
-				.misc_cmd = LED_OFF,
 				.reverse_dir = 1,
 				.negate_aenc = 1
 		},
 		{//10						//leg 1, q2
 				.id = 25,
-				.mtn16 = {{0}},
-				.ctl = {
-						.kp = 9.f,
-						.ki_div = 377.f,
-						.x_pi = 0,
-						.x_sat = 1.5f,
-						.tau_sat = 0.85f
-				},
 				.q_offset = 0.565593f,
-				.misc_cmd = LED_OFF,
-				.reverse_dir = 0,
+				.reverse_dir = 1,
 				.negate_aenc = 0
 		},
 		{//11						//leg 1, q3
@@ -130,7 +112,7 @@ motor_t chain[NUM_MOTORS] =
 				.mtn16 = {{0}},
 				.q_offset = -1.957520f,
 				.misc_cmd = LED_OFF,
-				.reverse_dir = 1,
+				.reverse_dir = 0,
 				.negate_aenc = 1
 		},
 		{//16						//leg 2, q2
