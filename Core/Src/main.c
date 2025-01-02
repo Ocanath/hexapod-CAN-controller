@@ -391,13 +391,23 @@ int main(void)
 
 	send_i32_val(&chain[9], CHANGE_PCTL_VQ_OUTSAT, 600);
 	send_i32_val(&chain[9], CHANGE_PCTL_VQ_XSAT, 500);
-//	send_i32_val(&chain[10], CHANGE_PCTL_VQ_OUTSAT, 600);
-//	send_i32_val(&chain[10], CHANGE_PCTL_VQ_XSAT, 500);
+	send_i32_val(&chain[10], CHANGE_PCTL_VQ_OUTSAT, 600);
+	send_i32_val(&chain[10], CHANGE_PCTL_VQ_XSAT, 500);
+	send_i32_val(&chain[11], CHANGE_PCTL_VQ_OUTSAT, 600);
+	send_i32_val(&chain[11], CHANGE_PCTL_VQ_XSAT, 500);
+
+	send_i32_val(&chain[13], CHANGE_PCTL_VQ_OUTSAT, 600);
+	send_i32_val(&chain[13], CHANGE_PCTL_VQ_XSAT, 500);
+	send_i32_val(&chain[14], CHANGE_PCTL_VQ_OUTSAT, 600);
+	send_i32_val(&chain[14], CHANGE_PCTL_VQ_XSAT, 500);
+
 
 
 	send_i32_val(&chain[15], CHANGE_PCTL_VQ_OUTSAT, 600);
 	send_i32_val(&chain[15], CHANGE_PCTL_VQ_XSAT, 500);
 	send_i32_val(&chain[15], CHANGE_PCTL_VQ_KD_VALUE, -damping);
+	send_i32_val(&chain[16], CHANGE_PCTL_VQ_OUTSAT, 600);
+	send_i32_val(&chain[16], CHANGE_PCTL_VQ_XSAT, 500);
 
 
 
