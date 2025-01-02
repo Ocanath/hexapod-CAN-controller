@@ -98,7 +98,7 @@ motor_t chain[NUM_MOTORS] =
 		{//13						//leg 6, q2
 				.id = 35,
 				.q_offset = 1.709880f,
-				.reverse_dir = 0,
+				.reverse_dir = 1,
 				.negate_aenc = 0
 		},
 		{//14						//leg 6, q3
@@ -120,7 +120,7 @@ motor_t chain[NUM_MOTORS] =
 				.mtn16 = {{0}},
 				.q_offset = 1.244548f,
 				.misc_cmd = LED_OFF,
-				.reverse_dir = 0,
+				.reverse_dir = 1,
 				.negate_aenc = 0
 		},
 		{//17						//leg 2, q3
