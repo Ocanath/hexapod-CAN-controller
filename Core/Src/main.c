@@ -365,6 +365,7 @@ int main(void)
 			motor_t_get(chain, NUM_MOTORS);
 	}
 	//enable motors
+	int32_t output_vsat = 600;
 	send_i32_val(&chain[0], CHANGE_PCTL_VQ_OUTSAT, 600);
 	send_i32_val(&chain[0], CHANGE_PCTL_VQ_XSAT, 500);
 	send_i32_val(&chain[1], CHANGE_PCTL_VQ_OUTSAT, 600);
@@ -396,6 +397,9 @@ int main(void)
 	send_i32_val(&chain[11], CHANGE_PCTL_VQ_OUTSAT, 600);
 	send_i32_val(&chain[11], CHANGE_PCTL_VQ_XSAT, 500);
 
+
+	send_i32_val(&chain[12], CHANGE_PCTL_VQ_OUTSAT, 600);
+	send_i32_val(&chain[12], CHANGE_PCTL_VQ_XSAT, 500);
 	send_i32_val(&chain[13], CHANGE_PCTL_VQ_OUTSAT, 600);
 	send_i32_val(&chain[13], CHANGE_PCTL_VQ_XSAT, 500);
 	send_i32_val(&chain[14], CHANGE_PCTL_VQ_OUTSAT, 600);
@@ -408,6 +412,8 @@ int main(void)
 	send_i32_val(&chain[15], CHANGE_PCTL_VQ_KD_VALUE, -damping);
 	send_i32_val(&chain[16], CHANGE_PCTL_VQ_OUTSAT, 600);
 	send_i32_val(&chain[16], CHANGE_PCTL_VQ_XSAT, 500);
+	send_i32_val(&chain[17], CHANGE_PCTL_VQ_OUTSAT, 600);
+	send_i32_val(&chain[17], CHANGE_PCTL_VQ_XSAT, 500);
 
 
 
